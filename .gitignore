@@ -1,0 +1,168 @@
+### =============================================
+### GITIGNORE PARA HIS-TECNM-MX
+### Sistema Hospitalario - TECNM México
+### Backend (Spring Boot) + Frontend (Flutter)
+### =============================================
+
+### ===== BACKEND (Spring Boot + Maven) =====
+
+# Maven
+backend/target/
+backend/.mvn/wrapper/maven-wrapper.jar
+backend/pom.xml.tag
+backend/pom.xml.releaseBackup
+backend/pom.xml.versionsBackup
+backend/pom.xml.next
+backend/release.properties
+backend/dependency-reduced-pom.xml
+backend/buildNumber.properties
+backend/.mvn/timing.properties
+backend/.mvn/wrapper/maven-wrapper.jar
+
+# Spring Boot
+backend/.springBeans
+backend/spring-boot-*.jar
+
+# Logs
+backend/*.log
+backend/logs/
+backend/*.log.*
+
+# Temp files
+backend/*.tmp
+backend/*.swp
+backend/*.swo
+backend/*~
+
+# IDE
+backend/.idea/
+backend/*.iml
+backend/*.iws
+backend/.vscode/
+backend/.settings/
+backend/.classpath
+backend/.project
+backend/.factorypath
+
+# Database
+backend/*.db
+backend/*.sqlite
+backend/*.h2.db
+
+# OS
+backend/.DS_Store
+backend/Thumbs.db
+
+
+### ===== FRONTEND (Flutter) =====
+
+# Flutter/Dart/Pub
+frontend/.dart_tool/
+frontend/.flutter-plugins
+frontend/.flutter-plugins-dependencies
+frontend/.packages
+frontend/.pub-cache/
+frontend/.pub/
+frontend/build/
+
+# Flutter coverage
+frontend/coverage/
+
+# Android
+frontend/android/app/debug/
+frontend/android/app/profile/
+frontend/android/app/release/
+frontend/android/.gradle/
+frontend/android/captures/
+frontend/android/local.properties
+frontend/android/.idea/
+frontend/android/*.iml
+frontend/android/*.class
+frontend/android/.externalNativeBuild/
+frontend/android/.cxx/
+frontend/android/**/GeneratedPluginRegistrant.java
+frontend/android/**/GeneratedPluginRegistrant.kt
+
+# iOS
+frontend/ios/Flutter/.last_build_id
+frontend/ios/Flutter/flutter_export_environment.sh
+frontend/ios/Flutter/App.framework/
+frontend/ios/Flutter/Flutter.framework/
+frontend/ios/Flutter/Flutter.podspec
+frontend/ios/.symlinks/
+frontend/ios/**/dgph
+frontend/ios/.generated/
+frontend/ios/Flutter/Generated.xcconfig
+frontend/ios/Flutter/flutter_export_environment.sh
+frontend/ios/Pods/
+frontend/ios/.DS_Store
+frontend/ios/.AppleDouble
+frontend/ios/.LSOverride
+
+# Web
+frontend/web/.dart_tool/
+frontend/web/flutter_service_worker.js*
+
+# Windows
+frontend/windows/flutter/generated_plugin_registrant.cc
+frontend/windows/flutter/generated_plugin_registrant.h
+frontend/windows/flutter/generated_plugins.cmake
+
+# macOS
+frontend/macos/Flutter/ephemeral/
+frontend/macos/Flutter/GeneratedPluginRegistrant.swift
+
+# Linux  
+frontend/linux/flutter/generated_plugin_registrant.cc
+frontend/linux/flutter/generated_plugin_registrant.h
+frontend/linux/flutter/generated_plugins.cmake
+
+# IntelliJ
+frontend/.idea/
+frontend/*.iml
+
+# VS Code
+frontend/.vscode/
+
+
+### ===== GENERAL =====
+
+# Docker
+.env
+.env.local
+**/.dockerignore
+
+# Logs generales
+*.log
+logs/
+*.log.*
+
+# Temporal
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Secrets (IMPORTANTE: No subir credenciales)
+**/secrets/
+**/*.pem
+**/*.key
+**/application-prod.yaml
+**/application-production.yaml
+
+
+### ===== ARCHIVOS DE CONFIGURACIÓN LOCAL =====
+
+# Configuraciones locales que no deben subirse
+backend/src/main/resources/application-local.yaml
+frontend/lib/config/api_config_local.dart
+
+
+### ===== DOCUMENTACIÓN DE TRABAJO (NO SUBIR) =====
+
+# Estos son documentos de trabajo interno
+PROYECTO_EHRBASE_PROMPT.md
+*.backup

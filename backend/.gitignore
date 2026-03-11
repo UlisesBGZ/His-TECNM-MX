@@ -1,0 +1,241 @@
+*.orig
+target/
+*.iml
+
+# Compiled class file
+*.class
+
+# Log file
+*.log
+
+# BlueJ files
+*.ctxt
+
+# Mobile Tools for Java (J2ME)
+.mtj.tmp/
+
+# Package Files #
+*.jar
+*.war
+*.nar
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
+hs_err_pid*
+### Windows template
+# Windows thumbnail cache files
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+
+# Dump file
+*.stackdump
+
+# Folder config file
+[Dd]esktop.ini
+
+# Recycle Bin used on file shares
+$RECYCLE.BIN/
+
+# Windows Installer files
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+
+# Windows shortcuts
+*.lnk
+
+### JetBrains template
+# Covers JetBrains IDEs: IntelliJ, RubyMine, PhpStorm, AppCode, PyCharm, CLion, Android Studio and WebStorm
+# Reference: https://intellij-support.jetbrains.com/hc/en-us/articles/206544839
+.idea/
+
+# CMake
+cmake-build-*/
+
+# File-based project format
+*.iws
+
+# IntelliJ
+out/
+
+# JIRA plugin
+atlassian-ide-plugin.xml
+
+# Crashlytics plugin (for Android Studio and IntelliJ)
+com_crashlytics_export_strings.xml
+crashlytics.properties
+crashlytics-build.properties
+fabric.properties
+
+### Eclipse template
+.metadata
+bin/
+tmp/
+*.tmp
+*.bak
+*.swp
+*~.nib
+local.properties
+.settings/
+.loadpath
+.recommenders
+
+# External tool builders
+.externalToolBuilders/
+
+# Locally stored "Eclipse launch configurations"
+*.launch
+
+# PyDev specific (Python IDE for Eclipse)
+*.pydevproject
+
+# CDT-specific (C/C++ Development Tooling)
+.cproject
+
+# CDT- autotools
+.autotools
+
+# Java annotation processor (APT)
+.factorypath
+
+# PDT-specific (PHP Development Tools)
+.buildpath
+
+# sbteclipse plugin
+.target
+
+# Tern plugin
+.tern-project
+
+# TeXlipse plugin
+.texlipse
+
+# STS (Spring Tool Suite)
+.springBeans
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.sts4-cache
+
+# Code Recommenders
+.recommenders/
+
+# Annotation Processing
+.apt_generated/
+
+# Scala IDE specific (Scala & Java development for Eclipse)
+.cache-main
+.scala_dependencies
+.worksheet
+
+### macOS template
+# General
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Icon must end with two \r
+Icon
+
+# Thumbnails
+._*
+
+# Files that might appear in the root of a volume
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# Directories potentially created on remote AFP share
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# Helm Chart dependencies
+**/charts/*.tgz
+.claude
+
+### Flutter & Dart ###
+# Build outputs
+flutter_frontend/build/
+flutter_frontend/.dart_tool/
+flutter_frontend/.flutter-plugins
+flutter_frontend/.flutter-plugins-dependencies
+flutter_frontend/.packages
+flutter_frontend/.pub-cache/
+flutter_frontend/.pub/
+flutter_frontend/ios/.generated/
+flutter_frontend/ios/Flutter/App.framework
+flutter_frontend/ios/Flutter/Flutter.framework
+flutter_frontend/ios/Flutter/Flutter.podspec
+flutter_frontend/ios/Flutter/Generated.xcconfig
+flutter_frontend/ios/Runner/GeneratedPluginRegistrant.*
+flutter_frontend/android/.gradle/
+flutter_frontend/android/captures/
+flutter_frontend/android/gradlew
+flutter_frontend/android/gradlew.bat
+flutter_frontend/android/local.properties
+flutter_frontend/android/**/GeneratedPluginRegistrant.java
+flutter_frontend/android/key.properties
+flutter_frontend/.metadata
+
+# Coverage
+flutter_frontend/coverage/
+
+# Misc
+flutter_frontend/*.g.dart
+flutter_frontend/**/*.g.dart
+
+### Maven Wrapper ###
+# IMPORTANTE: NO ignorar maven-wrapper.jar porque está reparado
+# Si lo ignoras, otros tendrán que descargarlo de nuevo
+# .mvn/wrapper/maven-wrapper.jar  ← NO descomentar
+
+### Backups y temporales ###
+*.backup
+mvnw.cmd.backup
+*.orig
+*.tmp
+
+### Variables de entorno y secrets ###
+.env
+*.env
+.env.local
+.env.production
+application-local.yaml
+application-secrets.yaml
+
+### VS Code ###
+# Mantener .vscode/tasks.json y .vscode/snippets.code-snippets
+# pero ignorar configuraciones personales
+.vscode/settings.json
+.vscode/launch.json
+.vscode/*.log
+
+### Docker ###
+# Ignorar volúmenes locales de Docker
+docker-compose.override.yml
+
+### Logs ###
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+### Documentos de trabajo (no subir) ###
+PROYECTO_EHRBASE_PROMPT.md
