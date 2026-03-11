@@ -24,7 +24,7 @@ Hola, voy a continuar trabajando en un proyecto que ya está en desarrollo. Este
 ## 📁 ESTRUCTURA CLAVE
 
 ```
-hapi-fhir-jpaserver-starter/
+Hospital-FHIR-System/
 ├── src/main/java/ca/uhn/fhir/jpa/starter/
 │   ├── Application.java
 │   └── auth/                              # Sistema custom de autenticación
@@ -41,7 +41,7 @@ hapi-fhir-jpaserver-starter/
 │   ├── AuthControllerTest.java           # 12 tests ✅
 │   └── UserControllerTest.java           # 11 tests ✅
 │
-├── flutter_frontend/
+├── frontend/
 │   ├── lib/
 │   │   ├── config/api_config.dart        # 🔧 Configuración dinámica (kIsWeb)
 │   │   ├── services/
@@ -63,7 +63,7 @@ hapi-fhir-jpaserver-starter/
 
 ### 1. Configuración Dinámica de Red (IMPORTANTE)
 
-**flutter_frontend/lib/config/api_config.dart**:
+**frontend/lib/config/api_config.dart**:
 ```dart
 static String get baseUrl {
   if (kIsWeb) return 'http://localhost:8080';      // Web
@@ -71,7 +71,7 @@ static String get baseUrl {
 }
 ```
 
-**flutter_frontend/lib/services/fhir_service.dart**:
+**frontend/lib/services/fhir_service.dart**:
 ```dart
 static String get baseUrl {
   if (kIsWeb) return 'http://localhost:8080/fhir';
@@ -81,7 +81,7 @@ static String get baseUrl {
 
 ⚠️ **Importante**: La IP de red puede cambiar. Si hay problemas de conexión en móvil, ejecutar:
 ```powershell
-cd flutter_frontend
+cd frontend
 .\update-ip.ps1
 ```
 
@@ -107,14 +107,14 @@ docker-compose up -d
 .\mvnw.cmd spring-boot:run -Pboot
 
 # 3. Frontend web
-cd flutter_frontend
+cd frontend
 flutter run -d chrome
 
 # 4. Tests backend
 .\mvnw.cmd test -Dtest="AuthControllerTest,UserControllerTest"
 
 # 5. Tests frontend
-cd flutter_frontend
+cd frontend
 flutter test
 ```
 
@@ -259,3 +259,4 @@ Por ejemplo:
 - *CONTEXTO_PARA_NUEVA_SESION.md*
 - *DESARROLLO_COMPLETO.md*
 - *AGENTS.md*
+

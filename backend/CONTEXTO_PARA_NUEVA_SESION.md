@@ -1,8 +1,9 @@
 # 📦 Contexto Completo del Proyecto - HAPI FHIR con Autenticación Custom y Flutter
 
 > **Documento para transferencia de proyecto a nueva laptop/sesión**  
-> **Fecha de creación**: 20 de Febrero, 2026  
-> **Estado**: Sistema completamente funcional, tests pasando al 100%
+> **Fecha de última actualización**: 11 de Marzo, 2026  
+> **Estado**: Sistema completamente funcional, tests pasando al 100%  
+> **Repositorio GitHub**: https://github.com/UlisesBGZ/His-TECNM-MX
 
 ---
 
@@ -52,7 +53,7 @@ Test-NetConnection localhost -Port 8080
 ### Paso 2: Iniciar Base de Datos
 
 ```powershell
-cd c:\Users\<TU_USUARIO>\Desktop\hapi-fhir-jpaserver-starter
+cd c:\Users\<TU_USUARIO>\Desktop\Hospital-FHIR-System\backend
 
 # Iniciar PostgreSQL en Docker
 docker-compose up -d
@@ -65,7 +66,7 @@ docker ps | Select-String "postgres"
 ### Paso 3: Actualizar IP de Red (CRÍTICO para móvil)
 
 ```powershell
-cd flutter_frontend
+cd c:\Users\<TU_USUARIO>\Desktop\Hospital-FHIR-System\frontend
 
 # Obtener tu IP local actual
 ipconfig | Select-String "IPv4"
@@ -79,8 +80,8 @@ ipconfig | Select-String "IPv4"
 ### Paso 4: Iniciar Backend
 
 ```powershell
-# En el directorio raíz del proyecto
-cd c:\Users\<TU_USUARIO>\Desktop\hapi-fhir-jpaserver-starter
+# En el directorio backend
+cd c:\Users\<TU_USUARIO>\Desktop\Hospital-FHIR-System\backend
 
 .\mvnw.cmd spring-boot:run -Pboot
 
@@ -92,7 +93,7 @@ cd c:\Users\<TU_USUARIO>\Desktop\hapi-fhir-jpaserver-starter
 
 ```powershell
 # En otra terminal PowerShell
-cd flutter_frontend
+cd c:\Users\<TU_USUARIO>\Desktop\Hospital-FHIR-System\frontend
 
 flutter run -d chrome
 
@@ -114,72 +115,77 @@ flutter run -d chrome
 ## 📂 ESTRUCTURA DEL PROYECTO
 
 ```
-hapi-fhir-jpaserver-starter/
+Hospital-FHIR-System/                              # 📁 Proyecto reorganizado
 │
-├── src/main/java/ca/uhn/fhir/jpa/starter/
-│   ├── Application.java                          # Entry point Spring Boot
-│   └── auth/                                      # 🔥 Sistema de autenticación personalizado
-│       ├── controller/
-│       │   ├── AuthController.java                # Login, signup, validateToken, createAdmin
-│       │   └── UserController.java                # CRUD usuarios, toggleUserStatus
-│       ├── model/
-│       │   └── User.java                          # Entidad JPA (id, username, email, password, role, enabled)
-│       ├── repository/
-│       │   └── UserRepository.java                # Spring Data JPA repository
-│       ├── service/
-│       │   ├── AuthService.java                   # Lógica de autenticación
-│       │   └── UserService.java                   # Lógica de gestión de usuarios
-│       ├── security/
-│       │   ├── JwtUtil.java                       # Generación y validación de JWT
-│       │   └── SecurityConfig.java                # Configuración Spring Security
-│       └── dto/
-│           ├── LoginRequest.java
-│           ├── SignupRequest.java
-│           └── AuthResponse.java
+├── backend/                                        # ☕ Backend Spring Boot + HAPI FHIR
+│   ├── src/main/java/ca/uhn/fhir/jpa/starter/
+│   │   ├── Application.java                       # Entry point Spring Boot
+│   │   └── auth/                                   # 🔥 Sistema de autenticación personalizado
+│   │       ├── controller/                         # 📥 Capa HTTP (Endpoints REST)
+│   │       │   ├── AuthController.java             # Login, signup, validateToken, createAdmin
+│   │       │   └── UserController.java             # CRUD usuarios, toggleUserStatus
+│   │       ├── service/                            # 💼 Capa de Lógica de Negocio (NUEVA)
+│   │       │   ├── AuthService.java                # Lógica de autenticación, BCrypt, JWT
+│   │       │   └── UserService.java                # Lógica de gestión de usuarios
+│   │       ├── repository/                         # 🗄️ Capa de Acceso a Datos
+│   │       │   └── UserRepository.java             # Spring Data JPA repository
+│   │       ├── model/
+│   │       │   └── User.java                       # Entidad JPA
+│   │       ├── util/
+│   │       │   └── JwtUtil.java                    # Utilidades JWT
+│   │       ├── config/
+│   │       │   └── SecurityConfig.java             # Configuración Spring Security
+│   │       └── dto/
+│   │           ├── LoginRequest.java
+│   │           ├── SignupRequest.java
+│   │           └── JwtResponse.java
+│   │
+│   ├── src/test/java/ca/uhn/fhir/jpa/starter/auth/
+│   │   ├── AuthControllerTest.java                 # 12 tests ✅ (100% pasando)
+│   │   └── UserControllerTest.java                 # 11 tests ✅ (100% pasando)
+│   │
+│   ├── docker-compose.yml                          # PostgreSQL 16 + configuración
+│   ├── pom.xml                                     # Dependencias Maven
+│   ├── mvnw.cmd                                    # Maven Wrapper (Windows)
+│   ├── mvnw                                        # Maven Wrapper (Linux/Mac)
+│   ├── .mvn/wrapper/
+│   │   ├── maven-wrapper.jar                       # JAR del wrapper (61.5 KB)
+│   │   └── maven-wrapper.properties                # Configuración wrapper v3.3.2
+│   └── README.md                                   # Documentación backend
 │
-├── src/test/java/ca/uhn/fhir/jpa/starter/auth/
-│   ├── AuthControllerTest.java                    # 12 tests ✅ (100% pasando)
-│   └── UserControllerTest.java                    # 11 tests ✅ (100% pasando)
-│
-├── flutter_frontend/                              # 🔥 Aplicación Flutter
+├── frontend/                                       # 📱 Frontend Flutter (SEPARADO)
 │   ├── lib/
-│   │   ├── main.dart                              # Entry point Flutter
+│   │   ├── main.dart                               # Entry point Flutter
 │   │   ├── config/
-│   │   │   └── api_config.dart                    # 🔧 Configuración dinámica de API
+│   │   │   └── api_config.dart                     # 🔧 Configuración dinámica de API
 │   │   ├── services/
-│   │   │   ├── auth_service.dart                  # Cliente HTTP para autenticación
-│   │   │   └── fhir_service.dart                  # 🔧 Cliente HTTP para FHIR
+│   │   │   ├── auth_service.dart                   # Cliente HTTP para autenticación
+│   │   │   └── fhir_service.dart                   # 🔧 Cliente HTTP para FHIR
 │   │   ├── models/
-│   │   │   ├── patient.dart                       # Modelo FHIR Patient
-│   │   │   ├── appointment.dart                   # Modelo FHIR Appointment
-│   │   │   └── practitioner.dart                  # Modelo FHIR Practitioner
+│   │   │   ├── fhir_patient.dart                   # Modelo FHIR Patient
+│   │   │   ├── fhir_appointment.dart               # Modelo FHIR Appointment
+│   │   │   └── fhir_practitioner.dart              # Modelo FHIR Practitioner
 │   │   ├── providers/
-│   │   │   └── auth_provider.dart                 # Estado de autenticación (Provider)
+│   │   │   └── auth_provider.dart                  # Estado de autenticación (Provider)
 │   │   └── screens/
-│   │       ├── login_screen.dart                  # 🎨 Login con animaciones
-│   │       ├── home_screen.dart                   # 🎨 Home con animaciones
-│   │       ├── patients_screen.dart               # Lista de pacientes FHIR
-│   │       └── appointments_screen.dart           # Lista de citas FHIR
+│   │       ├── login_screen.dart                   # 🎨 Login con animaciones
+│   │       ├── home_screen.dart                    # 🎨 Home con animaciones
+│   │       ├── patients_list_screen.dart           # Lista de pacientes FHIR
+│   │       └── appointment_list_screen.dart        # Lista de citas FHIR
 │   │
 │   ├── test/
-│   │   ├── auth_service_test.dart                 # 12 tests ✅
-│   │   ├── fhir_service_test.dart                 # 11 tests ✅
-│   │   ├── login_screen_test.dart                 # 8 tests (1 pasando, 7 requieren mocks)
-│   │   └── widget_test.dart                       # 2 tests ✅
+│   │   ├── services/
+│   │   │   ├── auth_service_test.dart              # 12 tests ✅
+│   │   │   └── fhir_service_test.dart              # 11 tests ✅
+│   │   └── widget_test.dart                        # 2 tests ✅
 │   │
-│   ├── update-ip.ps1                              # 🔧 Script para actualizar IP automáticamente
-│   └── pubspec.yaml                               # Dependencias Flutter
+│   ├── update-ip.ps1                               # 🔧 Script para actualizar IP automáticamente
+│   ├── pubspec.yaml                                # Dependencias Flutter
+│   └── README.md                                   # Documentación frontend
 │
-├── docker-compose.yml                             # PostgreSQL 16 + configuración
-├── pom.xml                                        # Dependencias Maven
-├── mvnw.cmd                                       # Maven Wrapper (REPARADO)
-├── .mvn/wrapper/
-│   ├── maven-wrapper.jar                          # JAR del wrapper (DESCARGADO, 61.5 KB)
-│   └── maven-wrapper.properties                   # Configuración wrapper v3.3.2
-│
-├── DESARROLLO_COMPLETO.md                         # 📚 Documentación detallada de todo el desarrollo
-├── AGENTS.md                                      # 📚 Guías para agentes IA
-└── CONTEXTO_PARA_NUEVA_SESION.md                 # 📚 Este archivo
+├── README.md                                       # 📖 Documentación principal del proyecto
+├── .gitignore                                      # Archivos ignorados por Git
+└── SUBIR_A_GITHUB.md                               # 📚 Guía para subir a GitHub
 ```
 
 **Leyenda**:
@@ -197,7 +203,7 @@ hapi-fhir-jpaserver-starter/
 
 **Archivos que se adaptan automáticamente**:
 
-**flutter_frontend/lib/config/api_config.dart**:
+**frontend/lib/config/api_config.dart**:
 ```dart
 import 'package:flutter/foundation.dart';
 
@@ -219,7 +225,7 @@ class ApiConfig {
 }
 ```
 
-**flutter_frontend/lib/services/fhir_service.dart**:
+**frontend/lib/services/fhir_service.dart**:
 ```dart
 import 'package:flutter/foundation.dart';
 
@@ -237,7 +243,7 @@ class FhirService {
 
 **⚠️ IMPORTANTE**: Cuando cambies de laptop o red, ejecuta:
 ```powershell
-cd flutter_frontend
+cd frontend
 .\update-ip.ps1
 ```
 
@@ -462,8 +468,8 @@ Authorization: Bearer <token>
 ### Tests del Backend
 
 ```powershell
-# En el directorio raíz
-cd c:\Users\<TU_USUARIO>\Desktop\hapi-fhir-jpaserver-starter
+# En el directorio backend
+cd c:\Users\<TU_USUARIO>\Desktop\Hospital-FHIR-System\backend
 
 # Ejecutar todos los tests
 .\mvnw.cmd test
@@ -492,7 +498,7 @@ cd c:\Users\<TU_USUARIO>\Desktop\hapi-fhir-jpaserver-starter
 ### Tests del Frontend
 
 ```powershell
-cd flutter_frontend
+cd frontend
 
 # Ejecutar todos los tests
 flutter test
@@ -617,7 +623,7 @@ ScaleTransition(
 
 ```powershell
 # 1. Actualizar IP de red
-cd flutter_frontend
+cd frontend
 .\update-ip.ps1
 
 # 2. Conectar dispositivo USB
@@ -728,11 +734,11 @@ target/
 .mvn/wrapper/maven-wrapper.jar
 
 # Flutter
-flutter_frontend/build/
-flutter_frontend/.dart_tool/
-flutter_frontend/.flutter-plugins
-flutter_frontend/.flutter-plugins-dependencies
-flutter_frontend/pubspec.lock
+frontend/build/
+frontend/.dart_tool/
+frontend/.flutter-plugins
+frontend/.flutter-plugins-dependencies
+frontend/pubspec.lock
 
 # IDEs
 .idea/
@@ -792,13 +798,13 @@ Thumbs.db
 
 ```powershell
 # BACKEND
-cd c:\Users\<TU_USUARIO>\Desktop\hapi-fhir-jpaserver-starter
+cd c:\Users\<TU_USUARIO>\Desktop\Hospital-FHIR-System\backend
 .\mvnw.cmd spring-boot:run -Pboot              # Iniciar backend
 .\mvnw.cmd test -Dtest="Auth*,User*"           # Tests rápidos
 .\mvnw.cmd clean install -DskipTests           # Compilar sin tests
 
 # FRONTEND
-cd flutter_frontend
+cd c:\Users\<TU_USUARIO>\Desktop\Hospital-FHIR-System\frontend
 flutter run -d chrome                          # Web
 flutter run                                    # Móvil (auto-detecta)
 flutter test                                   # Tests
@@ -825,7 +831,7 @@ flutter doctor                                              # Check Flutter
 Remove-Item -Recurse -Force target/
 
 # Frontend
-cd flutter_frontend
+cd frontend
 flutter clean
 flutter pub get
 Remove-Item -Recurse -Force build/
@@ -947,7 +953,7 @@ Contexto completo para transferencia de proyecto.
 
 3. **Actualizar IP**:
    ```powershell
-   cd flutter_frontend
+   cd frontend
    .\update-ip.ps1
    ```
 
@@ -960,7 +966,7 @@ Contexto completo para transferencia de proyecto.
    .\mvnw.cmd spring-boot:run -Pboot
    
    # Terminal 3: Frontend
-   cd flutter_frontend
+   cd frontend
    flutter run -d chrome
    ```
 
@@ -1045,7 +1051,7 @@ Antes de cerrar la laptop antigua, verificar:
 - [ ] Verificar que `.mvn/wrapper/maven-wrapper.jar` está incluido (61.5 KB)
 - [ ] Verificar que `mvnw.cmd` está incluido (no el .backup)
 - [ ] Incluir `docker-compose.yml`
-- [ ] Incluir toda la carpeta `flutter_frontend/`
+- [ ] Incluir toda la carpeta `frontend/`
 - [ ] Incluir documentación (DESARROLLO_COMPLETO.md, AGENTS.md)
 - [ ] Anotar IP actual si piensas usar móvil: __________________
 - [ ] Verificar que volumes de Docker están OK (si quieres mantener datos)
@@ -1055,7 +1061,7 @@ En la laptop nueva:
 - [ ] Instalar Java 17+
 - [ ] Instalar Flutter 3.38+
 - [ ] Instalar Docker Desktop
-- [ ] Copiar proyecto a `Desktop/hapi-fhir-jpaserver-starter/`
+- [ ] Copiar proyecto a `Desktop/Hospital-FHIR-System/`
 - [ ] Ejecutar `.\update-ip.ps1`
 - [ ] Iniciar Docker Compose
 - [ ] Iniciar backend
