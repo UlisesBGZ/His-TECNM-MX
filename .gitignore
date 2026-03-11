@@ -8,7 +8,6 @@
 
 # Maven
 backend/target/
-backend/.mvn/wrapper/maven-wrapper.jar
 backend/pom.xml.tag
 backend/pom.xml.releaseBackup
 backend/pom.xml.versionsBackup
@@ -17,7 +16,6 @@ backend/release.properties
 backend/dependency-reduced-pom.xml
 backend/buildNumber.properties
 backend/.mvn/timing.properties
-backend/.mvn/wrapper/maven-wrapper.jar
 
 # Spring Boot
 backend/.springBeans
