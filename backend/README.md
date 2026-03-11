@@ -1,617 +1,329 @@
-# Proyecto Base HAPI-FHIR
+# Backend - Sistema Hospitalario FHIR
 
-> **ℹ️ Nota Importante**: Este proyecto usa **Maven Wrapper 3.3.2** (incluido en el repositorio). **NO necesitas instalar Maven** globalmente. Los archivos `mvnw.cmd` y `.mvn/wrapper/maven-wrapper.jar` ya están incluidos. Todos los comandos usan `.\mvnw.cmd` en lugar de `mvn`.
+Backend basado en **HAPI FHIR 8.6.1** con sistema de autenticación JWT personalizado.
 
-Este proyecto es un proyecto inicial completo que puedes usar para desplegar un servidor FHIR usando HAPI FHIR JPA.
+## Stack Tecnológico
 
-Ten en cuenta que este proyecto está específicamente diseñado para usuarios finales del módulo servidor HAPI FHIR JPA (en otras palabras, te ayuda a implementar HAPI FHIR, no es la fuente de la librería en sí). Si estás buscando el proyecto principal de HAPI FHIR, mira aquí: https://github.com/hapifhir/hapi-fhir
+- **Framework**: Spring Boot 3.5.9
+- **FHIR Server**: HAPI FHIR 8.6.1
+- **Java**: 21.0.10 (mínimo 17)
+- **Build Tool**: Maven Wrapper 3.3.2 (incluido, NO requiere instalación global)
+- **Base de Datos**: PostgreSQL 16 (Docker)
+- **Autenticación**: JWT (JJWT 0.12.6) + BCrypt
+- **Testing**: JUnit 5 + Mockito
 
-Si bien este proyecto muestra cómo puedes usar muchas partes del framework HAPI FHIR, hay un conjunto de características que debes tener en cuenta que faltan o que necesitas proporcionar tú mismo o obtener soporte profesional antes de usarlo directamente en producción:
-
-1) El servicio no incluye implementación de seguridad. Ve cómo se puede hacer [aquí](https://hapifhir.io/hapi-fhir/docs/security/introduction.html)
-2) El servicio no incluye registro empresarial. Ve cómo se puede hacer [aquí](https://hapifhir.io/hapi-fhir/docs/security/balp_interceptor.html)
-3) El caché interno de tópicos usado por las suscripciones en HAPI FHIR no se comparte entre múltiples instancias ya que la [implementación predeterminada está en memoria](https://github.com/hapifhir/hapi-fhir/blob/master/hapi-fhir-jpaserver-subscription/src/main/java/ca/uhn/fhir/jpa/topic/ActiveSubscriptionTopicCache.java)
-4) El canal interno del broker de mensajes en HAPI FHIR no se comparte entre múltiples instancias ya que la [implementación predeterminada está en memoria](https://github.com/hapifhir/hapi-fhir/blob/master/hapi-fhir-storage/src/main/java/ca/uhn/fhir/jpa/subscription/channel/api/IChannelFactory.java). Esto impacta el uso de módulos listados [aquí](https://smilecdr.com/docs/installation/message_broker.html#modules-dependent-on-message-brokers)
-
-¿Necesitas Ayuda? Por favor consulta: https://github.com/hapifhir/hapi-fhir/wiki/Getting-Help
-
-## Prerequisitos
-
-Para usar este ejemplo, debes tener:
-
-- [Este proyecto](https://github.com/hapifhir/hapi-fhir-jpaserver-starter) clonado. Puedes crear un Fork en GitHub del proyecto y clonarlo en su lugar para que puedas personalizar el proyecto y guardar los resultados en GitHub.
-
-### y cualquiera de estos
- - Oracle Java (JDK) instalado: Mínimo JDK17 o superior.
- - **Maven Wrapper 3.3.2** (incluido en el proyecto, NO necesita instalación global de Maven)
-
-### o
- - Docker, ya que todo el proyecto puede ser construido usando docker multietapa (con JDK y maven envueltos en docker) o usado directamente desde [Docker Hub](https://hub.docker.com/r/hapiproject/hapi)
-
-## Ejecutar vía [Docker Hub](https://hub.docker.com/r/hapiproject/hapi)
-
-Cada versión etiquetada/liberada de `hapi-fhir-jpaserver` se construye como una imagen de Docker y se publica en Docker Hub. Para ejecutar la imagen Docker publicada desde DockerHub:
+## Arquitectura (3 Capas)
 
 ```
-docker pull hapiproject/hapi:latest
-docker run -p 8080:8080 hapiproject/hapi:latest
+┌─────────────┐
+│  Controller │ ← Endpoints HTTP REST (/api/auth, /api/users, /fhir)
+└──────┬──────┘
+       │
+┌──────▼──────┐
+│   Service   │ ← Lógica de negocio, validaciones, BCrypt, JWT
+└──────┬──────┘
+       │
+┌──────▼──────┐
+│ Repository  │ ← Spring Data JPA (acceso a PostgreSQL)
+└──────┬──────┘
+       │
+┌──────▼──────┐
+│  PostgreSQL │ ← Base de datos (Docker)
+└─────────────┘
 ```
 
-Esto ejecutará la imagen docker con la configuración predeterminada, mapeando el puerto 8080 del contenedor al puerto 8080 en el host. Una vez en ejecución, puedes acceder a `http://localhost:8080/` en el navegador para acceder a la interfaz del servidor HAPI FHIR o usar `http://localhost:8080/fhir/` como la URL base para tus peticiones REST.
-
-Si cambias el puerto mapeado, necesitas cambiar la configuración usada por HAPI para tener la propiedad/valor correcto de `hapi.fhir.tester`.
-
-### Configuración mediante variables de entorno
-
-Puedes personalizar HAPI directamente desde el comando `run` usando variables de entorno. Por ejemplo:
+## Estructura del Código
 
 ```
-docker run -p 8080:8080 -e hapi.fhir.default_encoding=xml hapiproject/hapi:latest
+backend/
+├── src/main/java/ca/uhn/fhir/jpa/starter/
+│   ├── Application.java                    # Entry point
+│   └── auth/                                # Sistema de autenticación custom
+│       ├── controller/
+│       │   ├── AuthController.java         # POST /api/auth/login, /signup, /validate
+│       │   └── UserController.java         # GET/PUT/DELETE /api/users/*
+│       ├── service/
+│       │   ├── AuthService.java            # Lógica JWT, BCrypt, validaciones
+│       │   └── UserService.java            # CRUD usuarios, toggle status
+│       ├── repository/
+│       │   └── UserRepository.java         # Spring Data JPA
+│       ├── model/
+│       │   ├── User.java                   # Entidad JPA
+│       │   └── Role.java                   # Enum: USER, ADMIN, DOCTOR, NURSE
+│       ├── dto/
+│       │   ├── LoginRequest.java
+│       │   ├── SignupRequest.java
+│       │   ├── JwtResponse.java
+│       │   └── UserResponse.java
+│       ├── config/
+│       │   └── SecurityConfig.java         # CORS y configuración
+│       └── util/
+│           └── JwtUtil.java                # Generación y validación JWT
+│
+├── src/test/java/.../auth/
+│   ├── AuthControllerTest.java            # 12 tests ✅
+│   └── UserController Test.java            # 11 tests ✅
+│
+├── src/main/resources/
+│   ├── application.yaml                    # Configuración principal
+│   └── init-admin.sql                      # Usuario admin inicial
+│
+├── docker-compose.yml                      # PostgreSQL 16
+├── pom.xml                                 # Dependencias Maven
+├── mvnw.cmd                                # Maven Wrapper (Windows)
+└── .mvn/wrapper/
+    └── maven-wrapper.jar                   # JAR del wrapper (incluido)
 ```
 
-HAPI busca en las variables de entorno las propiedades del archivo [application.yaml](https://github.com/hapifhir/hapi-fhir-jpaserver-starter/blob/master/src/main/resources/application.yaml) para los valores predeterminados.
+## Inicio Rápido
 
-### Configuración de almacenamiento binario
+### 1. Iniciar Base de Datos
 
-Para transmitir cargas útiles `Binary` grandes al disco en lugar de a la base de datos, configura el proyecto con propiedades de almacenamiento en sistema de archivos:
-
-```
-hapi:
-  fhir:
-    binary_storage_enabled: true
-    binary_storage_mode: FILESYSTEM
-    binary_storage_filesystem_base_directory: /binstore
-    # inline_resource_storage_below_size: 131072   # anulación opcional
+```powershell
+cd backend
+docker-compose up -d
 ```
 
-Cuando `binary_storage_mode` está configurado como `FILESYSTEM` y se omite `inline_resource_storage_below_size`, el proyecto aplica automáticamente un umbral de 102400 bytes (100 KB) en línea para que las cargas más pequeñas permanezcan en la base de datos. Asegúrate de que el directorio al que apuntes sea escribible por el proceso (para construcciones Docker, móntalo en el contenedor con los permisos apropiados).
+Esto inicia PostgreSQL 16 en el puerto **5432**:
+- Database: `fhirdb`
+- Usuario: `admin`
+- Contraseña: `admin`
 
-### Configuración mediante archivo application.yaml personalizado y usando Docker
+### 2. Iniciar Backend
 
-Puedes personalizar HAPI indicándole que busque el archivo de configuración en una ubicación diferente, por ejemplo:
-
-```
-docker run -p 8090:8080 -v $(pwd)/yourLocalFolder:/configs -e "--spring.config.location=file:///configs/another.application.yaml" hapiproject/hapi:latest
-```
-Aquí, el archivo de configuración (*another.application.yaml*) se coloca localmente en la carpeta *yourLocalFolder*.
-
-
-
-```
-docker run -p 8090:8080 -e "--spring.config.location=classpath:/another.application.yaml" hapiproject/hapi:latest
-```
-Aquí, el archivo de configuración (*another.application.yaml*) es parte del conjunto compilado de recursos.
-
-### Línea única para instalar rápidamente una Guía de Implementación en HAPI
-
-```
-docker run -p 8080:8080 -e "hapi.fhir.implementationguides.someIg.name=com.org.something" -e "hapi.fhir.implementationguides.someIg.version=1.2.3" -e "hapi.fhir.implementationguides.someIg.packageUrl=https://build.fhir.org/ig/yourOrg/yourIg/package.tgz" -e "hapi.fhir.implementationguides.someIg.installMode=STORE_AND_INSTALL" hapiproject/hapi:latest
+```powershell
+cd backend
+.\mvnw.cmd spring-boot:run -Pboot
 ```
 
-### Ejemplo usando ``docker-compose.yml`` para docker-compose
+El servidor estará disponible en: **http://localhost:8080**
 
-```yaml
-version: '3.7'
+### 3. Verificar que Funciona
 
-services:
-  fhir:
-    container_name: fhir
-    image: "hapiproject/hapi:latest"
-    ports:
-      - "8080:8080"
-    configs:
-      - source: hapi
-        target: /app/config/application.yaml
-    depends_on:
-      - db
+```powershell
+# Probar endpoint FHIR
+curl http://localhost:8080/fhir/metadata
 
-
-  db:
-    image: postgres
-    restart: always
-    environment:
-      POSTGRES_PASSWORD: admin
-      POSTGRES_USER: admin
-      POSTGRES_DB: hapi
-    volumes:
-      - ./hapi.postgress.data:/var/lib/postgresql/data
-
-configs:
-  hapi:
-     file: ./hapi.application.yaml
+# Probar autenticación (debe dar error sin token)
+curl http://localhost:8080/api/auth/validate
 ```
 
-Proporciona el siguiente contenido en ``./hapi.application.yaml``:
+## API Endpoints
 
-```yaml
-spring:
-  datasource:
-    url: 'jdbc:postgresql://db:5432/hapi'
-    username: admin
-    password: admin
-    driverClassName: org.postgresql.Driver
-  jpa:
-    properties:
-      hibernate.dialect: ca.uhn.fhir.jpa.model.dialect.HapiFhirPostgresDialect
-      hibernate.search.enabled: false
-```
+### Autenticación (`/api/auth`)
 
-### Ejemplo ejecutando interceptor personalizado usando docker-compose
-
-Este ejemplo es una extensión del anterior, ahora agregando un interceptor personalizado.
-
-```yaml
-version: '3.7'
-
-services:
-  fhir:
-    container_name: fhir
-    image: "hapiproject/hapi:latest"
-    ports:
-      - "8080:8080"
-    configs:
-      - source: hapi
-        target: /app/config/application.yaml
-      - source: hapi-extra-classes
-        target: /app/extra-classes
-    depends_on:
-      - db
-
-  db:
-    image: postgres
-    restart: always
-    environment:
-      POSTGRES_PASSWORD: admin
-      POSTGRES_USER: admin
-      POSTGRES_DB: hapi
-    volumes:
-      - ./hapi.postgress.data:/var/lib/postgresql/data
-
-configs:
-  hapi:
-     file: ./hapi.application.yaml
-  hapi-extra-classes:
-     file: ./hapi-extra-classes
-```
-
-Proporciona el siguiente contenido en ``./hapi.application.yaml``:
-
-```yaml
-spring:
-  datasource:
-    url: 'jdbc:postgresql://db:5432/hapi'
-    username: admin
-    password: admin
-    driverClassName: org.postgresql.Driver
-  jpa:
-    properties:
-      hibernate.dialect: ca.uhn.fhir.jpa.model.dialect.HapiFhirPostgresDialect
-      hibernate.search.enabled: false
-hapi:
-  fhir:
-    custom-bean-packages: the.package.containing.your.interceptor
-    custom-interceptor-classes: the.package.containing.your.interceptor.YourInterceptor
-```
-
-La estructura básica del interceptor sería así:
-
-```java
-package the.package.containing.your.interceptor;
-
-import org.hl7.fhir.instance.model.api.IBaseResource;
-import org.springframework.stereotype.Component;
-
-import ca.uhn.fhir.interceptor.api.Hook;
-import ca.uhn.fhir.interceptor.api.Interceptor;
-import ca.uhn.fhir.interceptor.api.Pointcut;
-
-@Component
-@Interceptor
-public class YourInterceptor
-{
-    @Hook(Pointcut.STORAGE_PRECOMMIT_RESOURCE_CREATED)
-    public void resourceCreated(IBaseResource newResource)
-    {
-        System.out.println("YourInterceptor.resourceCreated");
-    }
-}
-```
-
-## Ejecución local
-
-La forma más fácil de ejecutar este servidor depende completamente de los requisitos de tu entorno. Se admiten las siguientes formas:
-
-### Usando jetty
-```bash
-.\mvnw.cmd -Pjetty spring-boot:run
-```
-
-Después, el servidor será accesible en http://localhost:8080/fhir y el CapabilityStatement se encontrará en http://localhost:8080/fhir/metadata.
-
-### Usando Spring Boot
-```bash
-.\mvnw.cmd spring-boot:run
-```
-
-Después, el servidor será accesible en http://localhost:8080/fhir y el CapabilityStatement se encontrará en http://localhost:8080/fhir/metadata.
-
-Si quieres ejecutar este servidor en un puerto diferente, puedes cambiar el puerto en el archivo `src/main/resources/application.yaml` de la siguiente manera:
-
-```yaml
-server:
-#  servlet:
-#    context-path: /example/path
-  port: 8888
-```
-
-El servidor entonces será accesible en http://localhost:8888/fhir y el CapabilityStatement se encontrará en http://localhost:8888/fhir/metadata. Recuerda ajustar tu configuración de superposición en el archivo `application.yaml` de la siguiente manera:
-
-```yaml
-    tester:
-      -
-          id: home
-          name: Local Tester
-          server_address: 'http://localhost:8888/fhir'
-          refuse_to_fetch_third_party_urls: false
-          fhir_version: R4
-```
-
-### Usando Spring Boot con :run
-```bash
-.\mvnw.cmd clean spring-boot:run -Pboot
-```
-Después, el servidor será accesible en http://localhost:8080/ y por ejemplo http://localhost:8080/fhir/metadata. Recuerda ajustar tu configuración de superposición en el application.yaml de la siguiente manera:
-
-```yaml
-    tester:
-      -
-          id: home
-          name: Local Tester
-          server_address: 'http://localhost:8080/fhir'
-          refuse_to_fetch_third_party_urls: false
-          fhir_version: R4
-```
-
-### Usando Spring Boot
-```bash
-.\mvnw.cmd clean package spring-boot:repackage -DskipTests=true -Pboot && java -jar target/ROOT.war
-```
-Después, el servidor será accesible en http://localhost:8080/ y por ejemplo http://localhost:8080/fhir/metadata. Recuerda ajustar tu configuración de superposición en el application.yaml de la siguiente manera:
-
-```yaml
-    tester:
-      -
-          id: home
-          name: Local Tester
-          server_address: 'http://localhost:8080/fhir'
-          refuse_to_fetch_third_party_urls: false
-          fhir_version: R4
-```
-### Usando Spring Boot y Google distroless
-```bash
-.\mvnw.cmd clean package com.google.cloud.tools:jib-maven-plugin:dockerBuild -Dimage=distroless-hapi && docker run -p 8080:8080 distroless-hapi
-```
-Después, el servidor será accesible en http://localhost:8080/ y por ejemplo http://localhost:8080/fhir/metadata. Recuerda ajustar tu configuración de superposición en el application.yaml de la siguiente manera:
-
-```yaml
-    tester:
-      -
-          id: home
-          name: Local Tester
-          server_address: 'http://localhost:8080/fhir'
-          refuse_to_fetch_third_party_urls: false
-          fhir_version: R4
-```
-
-### Usando el Dockerfile y construcción multietapa
-```bash
-./build-docker-image.sh && docker run -p 8080:8080 hapi-fhir/hapi-fhir-jpaserver-starter:latest
-```
-Después, el servidor será accesible en http://localhost:8080/ y por ejemplo http://localhost:8080/fhir/metadata. Recuerda ajustar tu configuración de superposición en el application.yaml de la siguiente manera:
-
-```yaml
-    tester:
-      -
-          id: home
-          name: Local Tester
-          server_address: 'http://localhost:8080/fhir'
-          refuse_to_fetch_third_party_urls: false
-          fhir_version: R4
-```
-
-## Configuraciones
-
-Gran parte de este proyecto inicial de HAPI puede configurarse usando el archivo yaml en _src/main/resources/application.yaml_. Por defecto, este proyecto inicial está configurado para usar H2 como base de datos.
-
-### Configuración de MySQL
-
-HAPI FHIR JPA Server no admite MySQL ya que está obsoleto.
-
-Ve más en https://hapifhir.io/hapi-fhir/docs/server_jpa/database_support.html
-
-### Configuración de PostgreSQL
-
-Para configurar la aplicación inicial para usar PostgreSQL, en lugar del H2 predeterminado, actualiza el archivo application.yaml para tener lo siguiente:
-
-```yaml
-spring:
-  datasource:
-    url: 'jdbc:postgresql://localhost:5432/hapi'
-    username: admin
-    password: admin
-    driverClassName: org.postgresql.Driver
-  jpa:
-    properties:
-      hibernate.dialect: ca.uhn.fhir.jpa.model.dialect.HapiFhirPostgresDialect
-      hibernate.search.enabled: false
-
-      # Luego comenta todo hibernate.search.backend.*
-```
-
-Debido a que las pruebas de integración dentro del proyecto dependen de la configuración predeterminada de la base de datos H2, es importante omitir explícitamente las pruebas de integración durante el proceso de construcción, es decir, `.\mvnw.cmd install -DskipTests`, o eliminar las pruebas por completo. No omitir o eliminar las pruebas una vez que hayas configurado PostgreSQL para datasource.driver, datasource.url y hibernate.dialect como se detalla arriba resultará en errores de construcción y fallo de compilación.
-
-### Configuración de Microsoft SQL Server
-
-Para configurar la aplicación inicial para usar MS SQL Server, en lugar del H2 predeterminado, actualiza el archivo application.yaml para tener lo siguiente:
-
-```yaml
-spring:
-  datasource:
-    url: 'jdbc:sqlserver://<server>:<port>;databaseName=<databasename>'
-    username: admin
-    password: admin
-    driverClassName: com.microsoft.sqlserver.jdbc.SQLServerDriver
-```
-
-Además, asegúrate de no estar configurando el dialecto de Hibernate explícitamente, en otras palabras, elimina cualquier línea similar a:
-
-```
-hibernate.dialect: {algún dialecto que no sea Microsoft SQL}
-```
-
-
-Debido a que las pruebas de integración dentro del proyecto dependen de la configuración predeterminada de la base de datos H2, es importante omitir explícitamente las pruebas de integración durante el proceso de construcción, es decir, `.\mvnw.cmd install -DskipTests`, o eliminar las pruebas por completo. No omitir o eliminar las pruebas una vez que hayas configurado PostgreSQL para datasource.driver, datasource.url y hibernate.dialect como se detalla arriba resultará en errores de construcción y fallo de compilación.
-
-
-NOTA: MS SQL Server por defecto usa una página de códigos insensible a mayúsculas/minúsculas. Esto causará errores con algunas operaciones - como al expandir conjuntos de valores sensibles a mayúsculas/minúsculas (UCUM) ya que hay índices únicos definidos en las tablas de terminología para códigos.
-Se recomienda desplegar una base de datos sensible a mayúsculas/minúsculas antes de ejecutar HAPI FHIR cuando uses MS SQL Server para evitar estos y potencialmente otros problemas.
-
-## Agregar interceptores personalizados
-Los interceptores personalizados pueden registrarse con el servidor incluyendo la propiedad `hapi.fhir.custom-interceptor-classes`. Esto tomará una lista separada por comas de nombres de clases completamente calificados que se registrarán con el servidor.
-Los interceptores se descubrirán de una de dos formas:
-
-1) Desde el contexto de la aplicación Spring como Beans existentes (puede usarse junto con `hapi.fhir.custom-bean-packages`) o registrados con Spring mediante otros métodos
-2) Las clases se instanciarán mediante reflexión si no se encuentra ningún Bean coincidente
-
-Los interceptores también pueden registrarse manualmente a través de `RestfulServer.registerInterceptor`. Ten en cuenta que cualquier interceptor registrado de esta manera _no se ejecutará_ para operaciones no REST, por ejemplo, creación a través de un DAO. Para activarse en este caso, necesitas registrar tus interceptores en el bean `IInterceptorService`.
-
-## Agregar operaciones personalizadas (proveedores)
-Las operaciones personalizadas (proveedores) pueden registrarse con el servidor incluyendo la propiedad `hapi.fhir.custom-provider-classes`. Esto tomará una lista separada por comas de nombres de clases completamente calificados que se registrarán con el servidor.
-Los proveedores se descubrirán de una de dos formas:
-
-1) descubiertos desde el contexto de la aplicación Spring como Beans existentes (puede usarse junto con `hapi.fhir.custom-bean-packages`) o registrados con Spring mediante otros métodos
-
-o
-
-2) las clases se instanciarán mediante reflexión si no se encuentra ningún Bean coincidente
-
-## Personalizar la interfaz de usuario de la página web de pruebas
-
-La interfaz que viene con este servidor es un clon exacto del servidor disponible en [http://hapi.fhir.org](http://hapi.fhir.org). Puedes personalizar esta interfaz si lo deseas. Por ejemplo, podrías cambiar el texto introductorio o reemplazar el logo con el tuyo propio.
-
-La interfaz se personaliza usando archivos de plantilla de [Thymeleaf](https://www.thymeleaf.org/). Quizás quieras aprender más sobre Thymeleaf, pero no necesariamente lo necesitas: son bastante fáciles de entender.
-
-Varios archivos de plantilla que pueden personalizarse se encuentran en el siguiente directorio: [https://github.com/hapifhir/hapi-fhir-jpaserver-starter/tree/master/src/main/webapp/WEB-INF/templates](https://github.com/hapifhir/hapi-fhir-jpaserver-starter/tree/master/src/main/webapp/WEB-INF/templates)
-
-## Desplegar en un Servidor de Aplicaciones
-
-Usar el método Maven Wrapper-Embedded Jetty anterior es conveniente, pero no es una buena solución si quieres dejar el servidor ejecutándose en segundo plano.
-
-La mayoría de las personas que están usando HAPI FHIR JPA como un servidor accesible a otras personas (ya sea internamente en tu red o alojado públicamente) lo harán usando un Servidor de Aplicaciones, como [Apache Tomcat](http://tomcat.apache.org/) o [Jetty](https://www.eclipse.org/jetty/). Ten en cuenta que cualquier Contenedor Web compatible con Servlet 3.0+ funcionará (por ejemplo, Wildfly, Websphere, etc.).
-
-Tomcat es muy popular, por lo que es una buena elección simplemente porque podrás encontrar muchos tutoriales en línea. Jetty es una gran alternativa debido a su rápido tiempo de arranque y buen rendimiento general.
-
-Para desplegar en un contenedor, primero debes construir el proyecto:
-
-```bash
-mvn clean install
-```
-
-Esto creará un archivo llamado `ROOT.war` en tu directorio `target`. Este debe instalarse en tu Contenedor Web según las instrucciones para tu contenedor particular. Por ejemplo, si estás usando Tomcat, querrás copiar este archivo al directorio `webapps/`.
-
-Nuevamente, navega al siguiente enlace para usar el servidor (ten en cuenta que el puerto 8080 puede no ser correcto dependiendo de cómo esté configurado tu servidor).
-
-[http://localhost:8080/](http://localhost:8080/)
-
-Luego podrás acceder al servidor JPA, por ejemplo, usando http://localhost:8080/fhir/metadata.
-
-Si te gustaría que se aloje en, por ejemplo, hapi-fhir-jpaserver, es decir, http://localhost:8080/hapi-fhir-jpaserver/ o http://localhost:8080/hapi-fhir-jpaserver/fhir/metadata - entonces renombra el archivo WAR a ```hapi-fhir-jpaserver.war``` y ajusta la configuración de superposición en consecuencia, por ejemplo:
-
-```yaml
-    tester:
-      -
-          id: home
-          name: Local Tester
-          server_address: 'http://localhost:8080/hapi-fhir-jpaserver/fhir'
-          refuse_to_fetch_third_party_urls: false
-          fhir_version: R4
-```
-
-
-## Desplegar con docker compose
-
-Docker compose es una opción simple para construir y desplegar contenedores. Para desplegar con docker compose, debes construir el proyecto
-con `.\mvnw.cmd clean install` y luego levantar los contenedores con `docker-compose up -d --build`. El servidor puede ser
-alcanzado en http://localhost:8080/.
-
-Para usar otro puerto, cambia el parámetro `ports`
-dentro de `docker-compose.yml` a `8888:8080`, donde 8888 es un puerto de tu elección.
-
-El conjunto de docker compose también incluye base de datos PostgreSQL, si eliges usar PostgreSQL en lugar de H2, cambia las siguientes
-propiedades en `src/main/resources/application.yaml`:
-
-```yaml
-spring:
-  datasource:
-    url: 'jdbc:postgresql://hapi-fhir-postgres:5432/hapi'
-    username: admin
-    password: admin
-    driverClassName: org.postgresql.Driver
-jpa:
-  properties:
-    hibernate.dialect: ca.uhn.fhir.jpa.model.dialect.HapiFhirPostgresDialect
-    hibernate.search.enabled: false
-
-    # Then comment all hibernate.search.backend.*
-```
-
-## Ejecutar hapi-fhir-jpaserver directamente desde IntelliJ como Spring Boot
-Asegúrate de ejecutar con el perfil de Maven Wrapper llamado ```boot``` y NO también ```jetty```. Entonces estarás listo para depurar el proyecto directamente sin Servidores de Aplicaciones adicionales.
-
-## Ejecutar hapi-fhir-jpaserver-example en Tomcat desde IntelliJ
-
-Instala Tomcat.
-
-Asegúrate de tener Tomcat configurado en IntelliJ.
-
-- File->Settings->Build, Execution, Deployment->Application Servers
-- Haz clic en +
-- Selecciona "Tomcat Server"
-- Ingresa la ruta a tu despliegue de tomcat tanto para Tomcat Home (IntelliJ rellenará el directorio base por ti)
-
-Agrega una Configuración de Ejecución para ejecutar hapi-fhir-jpaserver-example bajo Tomcat
-
-- Run->Edit Configurations
-- Haz clic en el + verde
-- Selecciona Tomcat Server, Local
-- Cambia el nombre a lo que desees
-- Desmarca la casilla "After launch"
-- En la pestaña "Deployment", haz clic en el + verde
-- Selecciona "Artifact"
-- Selecciona "hapi-fhir-jpaserver-example:war"
-- En "Application context" escribe /hapi
-
-Ejecuta la configuración.
-
-- Ahora deberías tener "Application Servers" en la lista de ventanas en la parte inferior.
-- Haz clic en ella.
-- Selecciona tu servidor, y haz clic en el triángulo verde (o el insecto si quieres depurar)
-- Espera a que la salida de la consola se detenga
-
-Apunta tu navegador (o fiddler, o lo que sea) a `http://localhost:8080/hapi/baseDstu3/Patient`
-
-## Habilitar Suscripciones
-
-El servidor puede configurarse con soporte de suscripciones habilitando propiedades en el archivo [application.yaml](https://github.com/hapifhir/hapi-fhir-jpaserver-starter/blob/master/src/main/resources/application.yaml):
-
-- `hapi.fhir.subscription.resthook_enabled` - Habilita suscripciones REST Hook, donde el servidor hará una conexión saliente a un servidor REST remoto
-
-- `hapi.fhir.subscription.email.*` - Habilita suscripciones de correo electrónico. Ten en cuenta que también debes proporcionar los detalles de conexión para un servidor SMTP utilizable.
-
-- `hapi.fhir.subscription.websocket_enabled` - Habilita suscripciones websocket. Con esto habilitado, tu servidor aceptará conexiones websocket entrantes en la siguiente URL (este ejemplo usa la ruta de contexto y puerto predeterminados, es posible que necesites ajustar dependiendo de tu entorno de despliegue): [ws://localhost:8080/websocket](ws://localhost:8080/websocket)
-
-## Habilitar Razonamiento Clínico
-
-Establece `hapi.fhir.cr.enabled=true` en el archivo [application.yaml](https://github.com/hapifhir/hapi-fhir-jpaserver-starter/blob/master/src/main/resources/application.yaml) para habilitar [Clinical Quality Language](https://cql.hl7.org/) en este servidor. Un archivo de configuración alternativo, [application-cds.yaml](https://github.com/hapifhir/hapi-fhir-jpaserver-starter/blob/master/src/main/resources/application-cds.yaml), existe con el módulo Clinical Reasoning habilitado y configuraciones predeterminadas que se ha encontrado que funcionan con la mayoría de casos de prueba CDS y dQM.
-
-## Habilitar CDS Hooks
-
-Establece `hapi.fhir.cdshooks.enabled=true` en el archivo [application.yaml](https://github.com/hapifhir/hapi-fhir-jpaserver-starter/blob/master/src/main/resources/application.yaml) para habilitar [CDS Hooks](https://cds-hooks.org/) en este servidor. El módulo Clinical Reasoning también debe estar habilitado porque esta implementación de CDS Hooks incluye [CDS on FHIR](https://build.fhir.org/clinicalreasoning-cds-on-fhir.html). Un ejemplo de servicio CDS usando CDS on FHIR está disponible en la clase de prueba CdsHooksServletIT.
-
-## Habilitar MDM (EMPI)
-
-Establece `hapi.fhir.mdm_enabled=true` en el archivo [application.yaml](https://github.com/hapifhir/hapi-fhir-jpaserver-starter/blob/master/src/main/resources/application.yaml) para habilitar MDM en este servidor. Las reglas de coincidencia MDM se configuran en [mdm-rules.json](https://github.com/hapifhir/hapi-fhir-jpaserver-starter/blob/master/src/main/resources/mdm-rules.json). Las reglas en este archivo de ejemplo deben reemplazarse con reglas de coincidencia reales apropiadas para tus datos. Ten en cuenta que MDM depende de las suscripciones, por lo que para que MDM funcione, las suscripciones deben estar habilitadas.
-
-## Usar Elasticsearch
-
-Por defecto, el servidor usará índices lucene embebidos para propósitos de terminología e indexación de texto completo. Puedes cambiar esto para usar lucene editando las propiedades en [application.yaml](https://github.com/hapifhir/hapi-fhir-jpaserver-starter/blob/master/src/main/resources/application.yaml)
-
-Por ejemplo:
-
-```properties
-elasticsearch.enabled=true
-elasticsearch.rest_url=localhost:9200
-elasticsearch.username=SomeUsername
-elasticsearch.password=SomePassword
-elasticsearch.protocol=http
-elasticsearch.required_index_status=YELLOW
-elasticsearch.schema_management_strategy=CREATE
-```
-
-## Habilitar LastN
-
-Establece `hapi.fhir.lastn_enabled=true` en el archivo [application.yaml](https://github.com/hapifhir/hapi-fhir-jpaserver-starter/blob/master/src/main/resources/application.yaml) para habilitar la operación $lastn en este servidor. Ten en cuenta que la operación $lastn depende de Elasticsearch, por lo que para que $lastn funcione, la indexación debe estar habilitada usando Elasticsearch.
-
-## Habilitar almacenamiento de recursos en Índice Lucene
-
-Establece `hapi.fhir.store_resource_in_lucene_index_enabled` en el archivo [application.yaml](https://github.com/hapifhir/hapi-fhir-jpaserver-starter/blob/master/src/main/resources/application.yaml) para habilitar el almacenamiento de json de recursos junto con los mapeos de índice Lucene/Elasticsearch.
-
-## Cambiar tiempo de resultados de búsqueda en caché
-
-Es posible cambiar el tiempo de resultados de búsqueda en caché. La opción `reuse_cached_search_results_millis` en el [application.yaml](https://github.com/hapifhir/hapi-fhir-jpaserver-starter/blob/master/src/main/resources/application.yaml) es 6000 milisegundos por defecto.
-Establece `reuse_cached_search_results_millis: -1` en el archivo [application.yaml](https://github.com/hapifhir/hapi-fhir-jpaserver-starter/blob/master/src/main/resources/application.yaml) para ignorar el tiempo de caché en cada búsqueda.
-
-## Construir la variante distroless de la imagen (para menor huella y seguridad mejorada)
-
-El Dockerfile predeterminado contiene una etapa `release-distroless` para construir una variante de la imagen
-usando la imagen base `gcr.io/distroless/java-debian10:11`:
-
-```sh
-docker build --target=release-distroless -t hapi-fhir:distroless .
-```
-
-Ten en cuenta que las imágenes distroless también se construyen y publican automáticamente en el registro de contenedores,
-ve el sufijo `-distroless` en las etiquetas de imagen.
-
-## Agregar operaciones personalizadas
-
-Para agregar una operación personalizada, consulta la documentación en las librerías principales de hapi-fhir [aquí](https://hapifhir.io/hapi-fhir/docs/server_plain/rest_operations_operations.html).
-
-Dentro de `hapi-fhir-jpaserver-starter`, crea una clase genérica (que no extienda o implemente ninguna clase o interfaz), agrega la `@Operation` como un método dentro de la clase genérica, y luego registra la clase como un proveedor usando `RestfulServer.registerProvider()`.
-
-## Instalación de paquete en tiempo de ejecución
-
-Es posible instalar un paquete de Guía de Implementación FHIR (`package.tgz`) ya sea desde un paquete publicado o desde un paquete local con la operación `$install`, sin tener que reiniciar el servidor. Esto está disponible para R4 y R5.
-
-Esta característica debe estar habilitada en el application.yaml (o línea de comandos de docker):
-
-```yaml
-hapi:
-  fhir:
-    ig_runtime_upload_enabled: true
-```
-
-La operación `$install` se activa con un POST a `[server]/ImplementationGuide/$install`, con la carga útil a continuación:
-
+#### POST `/api/auth/login` - Iniciar sesión
 ```json
 {
-  "resourceType": "Parameters",
-  "parameter": [
-    {
-      "name": "npmContent",
-      "valueBase64Binary": "[BASE64_ENCODED_NPM_PACKAGE_DATA]"
-    }
-  ]
+  "username": "admin",
+  "password": "admin123"
+}
+```
+**Respuesta:**
+```json
+{
+  "token": "eyJhbGciOiJIUzUxMiJ9...",
+  "type": "Bearer",
+  "username": "admin",
+  "email": "admin@hospital.com",
+  "roles": ["ADMIN", "USER"]
 }
 ```
 
-## Habilitar auto-instrumentación OpenTelemetry
-
-La imagen del contenedor incluye el JAR del agente Java de [OpenTelemetry Java auto-instrumentation](https://github.com/open-telemetry/opentelemetry-java-instrumentation)
-que puede usarse para exportar datos de telemetría para el Servidor HAPI FHIR JPA. Puedes habilitarlo especificando la bandera `-javaagent`,
-por ejemplo, anulando la variable de entorno `JAVA_TOOL_OPTIONS`:
-
-```sh
-docker run --rm -it -p 8080:8080 \
-  -e JAVA_TOOL_OPTIONS="-javaagent:/app/opentelemetry-javaagent.jar" \
-  -e OTEL_TRACES_EXPORTER="jaeger" \
-  -e OTEL_SERVICE_NAME="hapi-fhir-server" \
-  -e OTEL_EXPORTER_JAEGER_ENDPOINT="http://jaeger:14250" \
-  docker.io/hapiproject/hapi:latest
+#### POST `/api/auth/signup` - Registrar usuario
+```json
+{
+  "username": "doctor1",
+  "email": "doctor1@hospital.com",
+  "password": "password123",
+  "firstName": "Juan",
+  "lastName": "Pérez",
+  "isAdmin": false
+}
 ```
 
-Puedes configurar el agente usando variables de entorno o propiedades del sistema Java, ve <https://opentelemetry.io/docs/instrumentation/java/automatic/agent-config/> para detalles.
+#### GET `/api/auth/validate` - Validar token
+**Headers:** `Authorization: Bearer <token>`
 
-## Habilitar MCP
+#### POST `/api/auth/create-admin` - Crear administrador
+Crea usuario con rol ADMIN.
 
-Las capacidades MCP pueden habilitarse estableciendo `spring.ai.mcp.server.enabled` a `true`. Esto habilitará el servidor MCP y expondrá los endpoints MCP. El endpoint MCP está actualmente codificado como `/mcp/message` y puede probarse ejecutando, por ejemplo, `npx @modelcontextprotocol/inspector` y conectarse a http://localhost:8080/mcp/message usando Streamable HTTP. Spring AI MCP Server Auto Configuration no está actualmente soportado.
+### Gestión de Usuarios (`/api/users`) - Solo ADMIN
+
+#### GET `/api/users` - Listar todos los usuarios
+**Headers:** `Authorization: Bearer <admin-token>`
+
+#### GET `/api/users/{id}` - Obtener usuario por ID
+
+#### DELETE `/api/users/{id}` - Eliminar usuario
+
+#### PUT `/api/users/{id}/toggle-status` - Habilitar/Deshabilitar usuario
+
+### FHIR Resources (`/fhir`)
+
+- `GET /fhir/Patient` - Listar pacientes
+- `GET /fhir/Patient/{id}` - Obtener paciente
+- `POST /fhir/Patient` - Crear paciente
+- `PUT /fhir/Patient/{id}` - Actualizar paciente
+- `DELETE /fhir/Patient/{id}` - Eliminar paciente
+
+*(Igual para Practitioner, Observation, Appointment, etc.)*
+
+## Testing
+
+### Ejecutar Todos los Tests
+
+```powershell
+.\mvnw.cmd test
+```
+
+**Tests disponibles:**
+- **AuthControllerTest**: 12 tests (login, signup, validación, etc.)
+- **UserControllerTest**: 11 tests (CRUD, permisos, toggle status)
+- **Total**: 23 tests pasando ✅
+
+### Ejecutar Tests Específicos
+
+```powershell
+# Solo tests de autenticación
+.\mvnw.cmd test -Dtest=AuthControllerTest
+
+# Solo tests de usuarios
+.\mvnw.cmd test -Dtest=UserControllerTest
+```
+
+## Configuración
+
+### Variables de Entorno
+
+Editar `src/main/resources/application.yaml`:
+
+```yaml
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/fhirdb
+    username: admin
+    password: admin   # ⚠️ Cambiar en producción
+  
+  jpa:
+    hibernate:
+      ddl-auto: update   # Crea/actualiza tablas automáticamente
+
+jwt:
+  secret: tu-secreto-jwt-super-seguro   # ⚠️ Cambiar en producción
+  expiration: 86400000  # 24 horas
+
+server:
+  port: 8080
+```
+
+### Usuario Admin Inicial
+
+Al iniciar por primera vez, se crea automáticamente:
+- **Username**: `admin`
+- **Password**: `admin123`
+- **Roles**: ADMIN, USER
+
+**Script**: `src/main/resources/init-admin.sql`
+
+## Características de Seguridad
+
+### JWT (JSON Web Tokens)
+- Generación de tokens con JJWT 0.12.6
+- Expiración configurable (por defecto 24 horas)
+- Firma con HS512
+
+### Hash de Contraseñas
+- BCrypt con salt automático
+- Nunca se almacenan contraseñas en texto plano
+
+### CORS
+- Configurado para permitir `http://localhost:*` (desarrollo)
+- Ajustar en producción en `SecurityConfig.java`
+
+### Autorización
+- Endpoints de usuario requieren token JWT válido
+- Endpoints de administración requieren rol `ADMIN`
+- Validación automática en cada request
+
+## Troubleshooting
+
+### Error: "Puerto 8080 ya en uso"
+```powershell
+# Ver qué proceso usa el puerto
+netstat -ano | Select-String ":8080"
+
+# Detener proceso (reemplazar PID)
+Stop-Process -Id <PID> -Force
+
+# O usar el script de iniciación que lo hace automáticamente
+cd ..
+.\iniciar-backend.bat
+```
+
+### Error: "Connection refused to PostgreSQL"
+```powershell
+# Verificar si PostgreSQL está corriendo
+docker ps | Select-String "postgres"
+
+# Si no está corriendo, iniciarlo
+cd backend
+docker-compose up -d
+
+# Ver logs si hay problemas
+docker logs hapi-fhir-postgres
+```
+
+### Error: Tests fallan
+```powershell
+# Limpiar y recompilar
+.\mvnw.cmd clean test
+
+# Ver logs detallados
+.\mvnw.cmd test -X
+```
+
+### Error: "Maven Wrapper not found"
+Los archivos `mvnw.cmd` y `.mvn/wrapper/maven-wrapper.jar` están incluidos en el repositorio. Si faltan:
+```powershell
+git restore mvnw.cmd .mvn/
+```
+
+## Build para Producción
+
+### Crear WAR
+
+```powershell
+.\mvnw.cmd clean package
+```
+
+El archivo se genera en: `target/ROOT.war`
+
+### Crear Imagen Docker
+
+```powershell
+docker build -t hospital-fhir-backend .
+docker run -p 8080:8080 hospital-fhir-backend
+```
+
+## Tecnologías y Librerías
+
+- **HAPI FHIR**: Framework FHIR para Java
+- **Spring Boot**: Framework web y DI
+- **Spring Data JPA**: ORM y acceso a datos
+- **PostgreSQL**: Base de datos relacional
+- **JJWT**: Librería JWT para Java
+- **BCrypt**: Hash de contraseñas
+- **Lombok**: Reducción de boilerplate
+- **JUnit 5**: Testing
+- **Mockito**: Mocking para tests
+
+## Documentación Adicional
+
+- [HAPI FHIR Docs](https://hapifhir.io/hapi-fhir/docs/)
+- [FHIR Spec](https://www.hl7.org/fhir/)
+- [Spring Boot Docs](https://docs.spring.io/spring-boot/docs/current/reference/html/)
+
+## Licencia
+
+Ver archivo LICENSE en la raíz del proyecto.

@@ -1,172 +1,406 @@
-﻿# Sistema Hospitalario con HAPI FHIR
+﻿# Frontend - Sistema Hospitalario FHIR
 
-Sistema completo de gestión hospitalaria con autenticación JWT, gestión de usuarios y recursos FHIR.
+Aplicación Flutter multiplataforma (Web + Android) para el sistema hospitalario FHIR.
 
-## 🚀 Inicio Rápido
+## Stack Tecnológico
 
-### Levantar el Backend
+- **Framework**: Flutter 3.27.3 / Dart 3.6.1
+- **Diseño**: Material Design 3
+- **Estado**: Provider 6.1.2
+- **HTTP Client**: http 1.2.2
+- **Almacenamiento**: shared_preferences 2.3.5
+- **Testing**: flutter_test, http + Mockito
 
-**Prerequisitos:**
-- Java 21.0.10 o superior
-- Docker Desktop ejecutándose
-- Maven Wrapper 3.3.2 (incluido en el proyecto)
+## Estructura del Código
 
-```powershell
-# En el directorio raíz del proyecto
-cd ../
-
-# Iniciar PostgreSQL
-docker-compose up -d
-
-# Iniciar el servidor backend
-.\mvnw.cmd spring-boot:run -Pboot
+```
+frontend/
+├── lib/
+│   ├── main.dart                           # Entry point
+│   ├── config/
+│   │   └── api_config.dart                 # URLs dinámicas (web/móvil)
+│   ├── providers/
+│   │   └── auth_provider.dart              # Estado de autenticación
+│   ├── services/
+│   │   ├── auth_service.dart               # API de autenticación
+│   │   └── fhir_service.dart               # API FHIR
+│   ├── models/
+│   │   ├── auth_models.dart                # User, LoginRequest, etc.
+│   │   ├── fhir_patient.dart               # Modelo Patient
+│   │   ├── fhir_practitioner.dart          # Modelo Practitioner
+│   │   └── fhir_appointment.dart           # Modelo Appointment
+│   └── screens/
+│       ├── login_screen.dart               # Pantalla de login
+│       ├── home_screen.dart                # Pantalla principal
+│       ├── patient_list_screen.dart        # Lista de pacientes
+│       ├── patient_form_screen.dart        # Crear/editar paciente
+│       ├── practitioner_list_screen.dart   # Lista de médicos
+│       └── appointment_list_screen.dart    # Lista de citas
+│
+├── test/
+│   ├── services/
+│   │   ├── auth_service_test.dart         # 12 tests ✅
+│   │   └── fhir_service_test.dart         # 11 tests ✅
+│   └── widget_test.dart                    # 2 tests ✅
+│
+├── pubspec.yaml                            # Dependencias
+├── update-ip.ps1                           # Script para actualizar IP de red
+└── android/                                # Configuración Android
 ```
 
-El backend estará disponible en `http://localhost:8080`
+## Inicio Rápido
 
-### Levantar el Frontend
-
-**Prerequisitos:**
-- Flutter 3.27.3 o superior
+### 1. Instalar Dependencias
 
 ```bash
-# Instalar dependencias
 flutter pub get
-
-# Ejecutar en web (Chrome)
-flutter run -d chrome
-
-# O ejecutar en Android/iOS (actualizar IP primero)
-# Ver sección "Configuración de Red" más abajo
 ```
 
-## 🔑 Credenciales por Defecto
+### 2. Ejecutar en Web (Chrome)
 
-- **Usuario Admin**: `admin`
-- **Contraseña**: `admin123`
+```bash
+flutter run -d chrome
+```
 
-## 📡 API Endpoints
+La aplicación se abrirá automáticamente en Chrome en `http://localhost:*`
 
-### Autenticación:
-- `POST /api/auth/login` - Iniciar sesión
-- `POST /api/auth/signup` - Registrar usuario
-- `GET /api/auth/validate` - Validar token JWT
-- `POST /api/auth/create-admin` - Crear administrador
+### 3. Ejecutar en Android
 
-### Usuarios (Solo Admin):
-- `GET /api/users` - Listar todos los usuarios
-- `GET /api/users/{id}` - Obtener usuario por ID
-- `PUT /api/users/{id}` - Actualizar usuario
-- `DELETE /api/users/{id}` - Eliminar usuario
-- `PATCH /api/users/{id}/toggle-status` - Habilitar/Deshabilitar usuario
-
-### FHIR (Estándar HL7 FHIR R4):
-- `GET/POST /fhir/Patient` - Gestión de pacientes
-- `GET/POST /fhir/Practitioner` - Gestión de profesionales
-- `GET/POST /fhir/Appointment` - Gestión de citas
-- `GET/POST /fhir/Observation` - Gestión de observaciones
-- Más endpoints según estándar HL7 FHIR R4
-
-## 🌐 Configuración de Red
-
-### Para Web (Localhost):
-La aplicación usa automáticamente `http://localhost:8080` cuando se ejecuta en navegador.
-
-### Para Móvil (Android/iOS):
-Necesitas actualizar la IP de red local antes de compilar para móvil:
+**Importante**: Primero actualiza tu IP de red:
 
 ```powershell
-# Ejecutar el script de actualización automática
+# Windows
 .\update-ip.ps1
 
-# El script obtendrá tu IP local y actualizará:
-# - lib/config/api_config.dart
-# - lib/services/fhir_service.dart
+# Luego ejecuta
+flutter run
 ```
 
-**Detección Automática**: El código usa `kIsWeb` de Flutter para detectar la plataforma y usar la URL correcta automáticamente.
+## Configuración Dinámica de Red
 
-## 🏗️ Arquitectura
-
-- **Backend**: Spring Boot 3.5.9 + HAPI FHIR 8.6.1 + JWT Auth
-- **Frontend**: Flutter 3.27.3 (Web, Android, iOS)
-- **Base de Datos**: PostgreSQL 16
-  - Puerto: 5432
-  - Usuario: `admin`
-  - Contraseña: `admin`
-  - Base de datos: `fhirdb`
-
-## 🧪 Tests
-
-```bash
-# Correr todos los tests del frontend
-flutter test
-
-# Tests disponibles:
-# - auth_service_test.dart: 12 tests ✅
-# - fhir_service_test.dart: 11 tests ✅
-# Total: 25 tests pasando
-```
-
-## 📦 Dependencias Principales
-
-```yaml
-dependencies:
-  flutter: ^3.27.3
-  http: ^1.2.2          # Cliente HTTP
-  provider: ^6.1.2      # Gestión de estado
-  intl: ^0.19.0        # Internacionalización (compatible con flutter_localizations)
-  shared_preferences: ^2.3.5  # Almacenamiento local
-```
-
-## 📚 Documentación Adicional
-
-Ver documentación completa en el directorio raíz:
-- **AGENTS.md** - Guía completa de desarrollo
-- **CONTEXTO_PARA_NUEVA_SESION.md** - Setup completo del proyecto
-- **AUTHENTICATION.md** - Detalles del sistema de autenticación JWT
-- **CHECKLIST_TRANSFERENCIA.md** - Guía para nueva laptop
-
-## 🔧 Variables de Configuración
+La aplicación detecta automáticamente la plataforma y usa la URL correcta:
 
 ### `lib/config/api_config.dart`
+
 ```dart
+import 'package:flutter/foundation.dart';
+
 class ApiConfig {
-  static const String _webBaseUrl = 'http://localhost:8080';
-  static const String _mobileBaseUrl = 'http://192.168.0.181:8080';  // Tu IP local
-  
-  // Detección automática de plataforma
-  static String get baseUrl => kIsWeb ? _webBaseUrl : _mobileBaseUrl;
+  static String get baseUrl {
+    if (kIsWeb) {
+      return 'http://localhost:8080';  // Web usa localhost
+    } else {
+      return 'http://192.168.X.X:8080';  // Móvil usa IP de red
+    }
+  }
 }
 ```
 
-## 🐛 Troubleshooting
+### Script de Actualización Automática
 
-### Error de conexión en móvil
+El script `update-ip.ps1` obtiene automáticamente tu IP local y actualiza:
+- `lib/config/api_config.dart`
+- `lib/services/fhir_service.dart`
+
+```powershell
+.\update-ip.ps1
+```
+
+## Funcionalidades
+
+### Autenticación
+- ✅ Login con usuario y contraseña
+- ✅ Almacenamiento seguro del token JWT
+- ✅ Validación automática del token
+- ✅ Cierre de sesión
+- ✅ Estado de autenticación global (Provider)
+
+### Gestión de Pacientes
+- ✅ Lista de pacientes con búsqueda
+- ✅ Ver detalles de paciente
+- ✅ Crear nuevo paciente
+- ✅ Editar paciente existente
+- ✅ Eliminar paciente (con confirmación)
+- ✅ **Actualización instantánea** al crear/editar
+
+### Gestión de Médicos
+- ✅ Lista de profesionales de salud
+- ✅ Ver detalles de médico
+- ✅ Filtros por especialidad
+
+### Gestión de Citas
+- ✅ Lista de citas programadas
+- ✅ Detalles de cita (paciente, médico, fecha)
+- ✅ Estado de la cita (pendiente, confirmada, cancelada)
+
+### UI/UX
+- ✅ Material Design 3
+- ✅ Tema personalizado (azul/morado)
+- ✅ Animaciones suaves
+- ✅ Indicadores de carga
+- ✅ Manejo de errores con SnackBars
+- ✅ Responsive design
+
+## Credenciales por Defecto
+
+- **Usuario**: `admin`
+- **Contraseña**: `admin123`
+
+## Testing
+
+### Ejecutar Todos los Tests
+
 ```bash
+flutter test
+```
+
+**Cobertura de Tests:**
+- **auth_service_test.dart**: 12 tests
+  - Login exitoso/fallido
+  - Signup con validaciones
+  - Validación de token
+  - Manejo de errores
+- **fhir_service_test.dart**: 11 tests
+  - CRUD de pacientes
+  - Lista de recursos FHIR
+  - Manejo de errores HTTP
+- **widget_test.dart**: 2 tests
+  - Renderizado de widgets
+  
+**Total**: 25 tests pasando ✅
+
+### Ejecutar Tests Específicos
+
+```bash
+# Solo tests de autenticación
+flutter test test/services/auth_service_test.dart
+
+# Solo tests FHIR
+flutter test test/services/fhir_service_test.dart
+```
+
+## Dependencias Principales
+
+```yaml
+dependencies:
+  # Framework
+  flutter: ^3.27.3
+  
+  # Gestión de Estado
+  provider: ^6.1.2
+  
+  # HTTP y Networking
+  http: ^1.2.2
+  
+  # Almacenamiento Local
+  shared_preferences: ^2.3.5
+  
+  # Internacionalización
+  intl: ^0.19.0
+  
+dev_dependencies:
+  # Testing
+  flutter_test:
+  mockito: ^5.4.0
+  build_runner: ^2.4.0
+```
+
+## Arquitectura de la Aplicación
+
+### Estado Global (Provider)
+
+```dart
+MultiProvider(
+  providers: [
+    ChangeNotifierProvider(create: (_) => AuthProvider()),
+  ],
+  child: MaterialApp(...),
+)
+```
+
+### Flujo de Autenticación
+
+```
+1. Usuario ingresa credenciales
+2. auth_service.dart hace POST /api/auth/login
+3. Recibe token JWT
+4. auth_provider guarda token en memoria y SharedPreferences
+5. Navegación automática a HomeScreen
+6. Cada request HTTP incluye: Authorization: Bearer <token>
+```
+
+### Actualización Instantánea de Listas
+
+Cuando creas/editas un paciente:
+
+```dart
+// PatientFormScreen retorna el paciente guardado
+Navigator.of(context).pop(savedPatient);
+
+// PatientListScreen lo recibe y actualiza la lista
+if (result != null) {
+  _patients.add(result);  // Agregar a la lista
+  _filterPatients();      // Actualizar vista
+}
+```
+
+## Configuración Android
+
+### `android/app/build.gradle`
+
+```gradle
+android {
+    compileSdk = 34
+    
+    defaultConfig {
+        minSdk = 21
+        targetSdk = 34
+    }
+}
+```
+
+### Permisos de Internet
+
+Ya configurado en `android/app/src/main/AndroidManifest.xml`:
+
+```xml
+<uses-permission android:name="android.permission.INTERNET"/>
+```
+
+## Troubleshooting
+
+### Error: "Failed to fetch" en móvil
+
+**Causa**: La IP del backend es incorrecta o el backend no está corriendo.
+
+**Solución**:
+```powershell
 # 1. Verificar que backend está corriendo
 curl http://localhost:8080/fhir/metadata
 
-# 2. Actualizar IP con el script
+# 2. Actualizar IP
 .\update-ip.ps1
 
-# 3. Verificar que la IP es correcta
-ipconfig  # Windows
-ifconfig  # Linux/Mac
+# 3. Reconstruir la app
+flutter clean
+flutter run
 ```
 
-### Error de dependencias
+### Error: "PlatformException: SharedPreferences"
+
+**Causa**: Error al inicializar SharedPreferences.
+
+**Solución**:
 ```bash
-# Limpiar caché y reinstalar
 flutter clean
 flutter pub get
 ```
 
-### Error de compilación
+### Error: Dependencias no resuelven
+
+**Solución**:
 ```bash
 # Actualizar Flutter
 flutter upgrade
 
-# Verificar configuración
-flutter doctor
+# Limpiar caché
+flutter pub cache repair
+flutter pub get
 ```
+
+### Error: "Token expired"
+
+**Causa**: El token JWT expiró (24 horas por defecto).
+
+**Solución**: Vuelve a hacer login. El token se renovará automáticamente.
+
+## Comandos Útiles
+
+```bash
+# Ejecutar en modo release (más rápido)
+flutter run --release
+
+# Construir APK para Android
+flutter build apk --release
+
+# Construir para web
+flutter build web
+
+# Analizar el código
+flutter analyze
+
+# Formatear código
+dart format lib/
+
+# Ver dispositivos disponibles
+flutter devices
+```
+
+## Características de UI
+
+### Tema Personalizado
+
+```dart
+ThemeData(
+  primarySwatch: Colors.blue,
+  colorScheme: ColorScheme.fromSeed(
+    seedColor: Colors.blue,
+    brightness: Brightness.light,
+  ),
+  useMaterial3: true,
+)
+```
+
+### Animaciones
+
+- **Login**: FadeIn + SlideTransition (1200ms)
+- **Home**: ScaleTransition escalonada (1500ms)
+- **Listas**: Hero transitions
+- **Botones**: Ripple effect automático
+
+## Build para Producción
+
+### Android
+
+```bash
+# Generar APK
+flutter build apk --release
+
+# Generar App Bundle (para Play Store)
+flutter build appbundle --release
+```
+
+El APK estará en: `build/app/outputs/flutter-apk/app-release.apk`
+
+### Web
+
+```bash
+# Build optimizado para web
+flutter build web --release
+
+# Los archivos estarán en: build/web/
+```
+
+Luego puedes servir con:
+```bash
+cd build/web
+python -m http.server 8000
+```
+
+## Próximas Mejoras Sugeridas
+
+- [ ] Soporte para iOS
+- [ ] Modo offline con caché local
+- [ ] Notificaciones push
+- [ ] Biométricos (huella/Face ID)
+- [ ] Modo oscuro
+- [ ] Internacionalización (i18n) español/inglés
+- [ ] Tests de integración (integration_test)
+- [ ] CI/CD con GitHub Actions
+
+## Recursos Adicionales
+
+- [Flutter Docs](https://docs.flutter.dev/)
+- [Material Design 3](https://m3.material.io/)
+- [Provider Docs](https://pub.dev/packages/provider)
+- [FHIR Resources](https://www.hl7.org/fhir/resourcelist.html)
