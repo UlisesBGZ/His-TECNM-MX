@@ -10,13 +10,18 @@ Hola, voy a continuar trabajando en un proyecto que ya está en desarrollo. Este
 
 **Nombre**: Sistema de Gestión Hospitalaria FHIR con Autenticación Custom  
 **Estado**: ✅ Completamente funcional, tests pasando al 100%  
-**Stack**: Spring Boot 3.5.9 + HAPI FHIR 8.6.1 + Flutter 3.38.7 + PostgreSQL 16  
-**Fecha de última actualización**: 20 de Febrero, 2026
+**Stack**: Spring Boot 3.5.9 + HAPI FHIR 8.6.1 + Flutter 3.27.3 + PostgreSQL 16  
+**Fecha de última actualización**: 11 de Marzo, 2026  
+**Repositorio GitHub**: https://github.com/UlisesBGZ/His-TECNM-MX
 
-## 🏗️ ARQUITECTURA
+## 🏗️ ARQUITECTURA (3 CAPAS)
 
 - **Backend**: Spring Boot + HAPI FHIR en puerto 8080
-- **Frontend**: Flutter (web en Chrome, móvil en Android)
+  - **Controller** → **Service** → **Repository**
+  - Capa Controller: Endpoints HTTP REST
+  - Capa Service (NUEVA): Lógica de negocio, BCrypt, JWT
+  - Capa Repository: Spring Data JPA
+- **Frontend**: Flutter (web en Chrome, móvil en Android) - SEPARADO EN frontend/
 - **Base de Datos**: PostgreSQL 16 en Docker (puerto 5432)
 - **Autenticación**: JWT (JJWT 0.12.6) + BCrypt
 - **Testing**: 23 tests backend + 25 tests frontend (100% pasando)
@@ -24,7 +29,7 @@ Hola, voy a continuar trabajando en un proyecto que ya está en desarrollo. Este
 ## 📁 ESTRUCTURA CLAVE
 
 ```
-Hospital-FHIR-System/
+hapi-fhir-jpaserver-starter/
 ├── src/main/java/ca/uhn/fhir/jpa/starter/
 │   ├── Application.java
 │   └── auth/                              # Sistema custom de autenticación
@@ -41,7 +46,7 @@ Hospital-FHIR-System/
 │   ├── AuthControllerTest.java           # 12 tests ✅
 │   └── UserControllerTest.java           # 11 tests ✅
 │
-├── frontend/
+├── flutter_frontend/
 │   ├── lib/
 │   │   ├── config/api_config.dart        # 🔧 Configuración dinámica (kIsWeb)
 │   │   ├── services/
@@ -63,7 +68,7 @@ Hospital-FHIR-System/
 
 ### 1. Configuración Dinámica de Red (IMPORTANTE)
 
-**frontend/lib/config/api_config.dart**:
+**flutter_frontend/lib/config/api_config.dart**:
 ```dart
 static String get baseUrl {
   if (kIsWeb) return 'http://localhost:8080';      // Web
@@ -71,7 +76,7 @@ static String get baseUrl {
 }
 ```
 
-**frontend/lib/services/fhir_service.dart**:
+**flutter_frontend/lib/services/fhir_service.dart**:
 ```dart
 static String get baseUrl {
   if (kIsWeb) return 'http://localhost:8080/fhir';
@@ -81,7 +86,7 @@ static String get baseUrl {
 
 ⚠️ **Importante**: La IP de red puede cambiar. Si hay problemas de conexión en móvil, ejecutar:
 ```powershell
-cd frontend
+cd flutter_frontend
 .\update-ip.ps1
 ```
 
@@ -107,14 +112,14 @@ docker-compose up -d
 .\mvnw.cmd spring-boot:run -Pboot
 
 # 3. Frontend web
-cd frontend
+cd flutter_frontend
 flutter run -d chrome
 
 # 4. Tests backend
 .\mvnw.cmd test -Dtest="AuthControllerTest,UserControllerTest"
 
 # 5. Tests frontend
-cd frontend
+cd flutter_frontend
 flutter test
 ```
 
@@ -259,4 +264,3 @@ Por ejemplo:
 - *CONTEXTO_PARA_NUEVA_SESION.md*
 - *DESARROLLO_COMPLETO.md*
 - *AGENTS.md*
-

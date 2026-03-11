@@ -63,20 +63,17 @@ class _PatientListScreenState extends State<PatientListScreen> {
   void _filterPatients([String? query]) {
     final searchQuery = query ?? _searchController.text;
 
-    if (searchQuery.isEmpty) {
-      setState(() {
-        _filteredPatients = _patients;
-      });
-      return;
-    }
-
     setState(() {
-      _filteredPatients = _patients.where((patient) {
-        final fullName = patient.fullName.toLowerCase();
-        final identifier = patient.identifier?.toLowerCase() ?? '';
-        final search = searchQuery.toLowerCase();
-        return fullName.contains(search) || identifier.contains(search);
-      }).toList();
+      if (searchQuery.isEmpty) {
+        _filteredPatients = List.from(_patients);
+      } else {
+        _filteredPatients = _patients.where((patient) {
+          final fullName = patient.fullName.toLowerCase();
+          final identifier = patient.identifier?.toLowerCase() ?? '';
+          final search = searchQuery.toLowerCase();
+          return fullName.contains(search) || identifier.contains(search);
+        }).toList();
+      }
     });
   }
 
@@ -147,19 +144,36 @@ class _PatientListScreenState extends State<PatientListScreen> {
     );
 
     if (result != null && mounted) {
-      setState(() {
-        if (patient == null) {
-          // Nuevo paciente: agregar a la lista
-          _patients.add(result);
-        } else {
-          // Paciente editado: actualizar en la lista
-          final index = _patients.indexWhere((p) => p.id == result.id);
-          if (index != -1) {
-            _patients[index] = result;
-          }
+      // Actualizar la lista de pacientes
+      if (patient == null) {
+        // Nuevo paciente: agregar a la lista
+        _patients.add(result);
+        print(
+            '✅ Nuevo paciente agregado: ${result.fullName} (ID: ${result.id})');
+
+        // Mostrar notificación de éxito
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('✓ ${result.fullName} agregado a la lista'),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      } else {
+        // Paciente editado: actualizar en la lista
+        final index = _patients.indexWhere((p) => p.id == result.id);
+        if (index != -1) {
+          _patients[index] = result;
+          print(
+              '✅ Paciente actualizado: ${result.fullName} (ID: ${result.id})');
         }
-        _filterPatients();
-      });
+      }
+
+      // Actualizar lista filtrada
+      _filterPatients();
+
+      print(
+          '📋 Lista actualizada: ${_patients.length} pacientes totales, ${_filteredPatients.length} filtrados');
     }
   }
 
