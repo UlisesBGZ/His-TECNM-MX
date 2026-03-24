@@ -10,6 +10,15 @@ server:
     # allow | as a separator in URLs
     relaxed-query-chars: "|"
 
+virtualehr:
+  fhir:
+    base-url: http://localhost:8080/fhir
+    linkage-namespace: HOSPITAL_FHIR_SYSTEM
+  ehrbase:
+    base-url: http://localhost:8081/ehrbase/
+    username: ehrbase-user
+    password: SuperSecretPassword
+
 management:
   # Actuator endpoints: only /actuator/health exposed by default
   endpoints:

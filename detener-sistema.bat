@@ -23,13 +23,13 @@ if errorlevel 1 (
 )
 
 echo.
-echo [3/3] Deteniendo PostgreSQL
+echo [3/3] Deteniendo servicios Docker (PostgreSQL y EHRbase)
 cd /d "%~dp0backend"
-docker-compose down
+docker compose down
 if errorlevel 1 (
-    echo Error al detener PostgreSQL
+    echo Error al detener servicios Docker
 ) else (
-    echo PostgreSQL detenido
+    echo Servicios Docker detenidos
 )
 
 echo.

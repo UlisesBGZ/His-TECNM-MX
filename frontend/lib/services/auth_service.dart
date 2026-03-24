@@ -14,7 +14,10 @@ class AuthService {
     try {
       final response = await http.post(
         Uri.parse(ApiConfig.loginEndpoint),
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
         body: jsonEncode(request.toJson()),
       );
 
@@ -37,7 +40,10 @@ class AuthService {
     try {
       final response = await http.post(
         Uri.parse(ApiConfig.signupEndpoint),
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
         body: jsonEncode(request.toJson()),
       );
 
@@ -49,7 +55,7 @@ class AuthService {
       }
     } catch (e) {
       if (e is Exception) {
-        throw e;
+        rethrow;
       }
       throw Exception('Error de conexión: ${e.toString()}');
     }
@@ -60,7 +66,10 @@ class AuthService {
     try {
       final response = await http.post(
         Uri.parse(ApiConfig.createAdminEndpoint),
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
         body: jsonEncode(request.toJson()),
       );
 
@@ -73,7 +82,7 @@ class AuthService {
       }
     } catch (e) {
       if (e is Exception) {
-        throw e;
+        rethrow;
       }
       throw Exception('Error de conexión: ${e.toString()}');
     }
@@ -86,10 +95,31 @@ class AuthService {
     await prefs.remove(_userKey);
   }
 
-  // Check if user is logged in
+  // Check if user is logged in (token key exists in storage)
   Future<bool> isLoggedIn() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.containsKey(_tokenKey);
+  }
+
+  // Validate token against the backend - returns false if expired or invalid
+  Future<bool> isTokenValid() async {
+    try {
+      final token = await getToken();
+      if (token == null) return false;
+
+      final response = await http.get(
+        Uri.parse('${ApiConfig.apiAuth}/validate'),
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      ).timeout(const Duration(seconds: 5));
+
+      return response.statusCode == 200;
+    } catch (_) {
+      // Network error or timeout: keep user logged in (graceful degradation)
+      return true;
+    }
   }
 
   // Get saved token

@@ -1,6 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert';
 
 import 'package:fhir_hospital_app/models/fhir_patient.dart';
 import 'package:fhir_hospital_app/models/fhir_appointment.dart';
@@ -160,7 +159,7 @@ void main() {
       const practitionerId = '1052';
 
       // When
-      final url =
+      const url =
           '$baseUrl/Patient?general-practitioner=Practitioner/$practitionerId&_count=50&_total=accurate';
 
       // Then
@@ -176,7 +175,7 @@ void main() {
       const searchText = 'Lopez';
 
       // When
-      final url = '$baseUrl/Patient?name=$searchText';
+      const url = '$baseUrl/Patient?name=$searchText';
 
       // Then
       expect(url, contains('name=Lopez'));

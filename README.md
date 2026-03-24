@@ -23,6 +23,10 @@ Sistema hospitalario completo que combina:
 
 ## 🚀 Inicio Rápido (Scripts Automáticos)
 
+> ⚠️ **IMPORTANTE**: El **backend debe iniciar ANTES** que el frontend. Si intentas hacer login sin el backend corriendo, obtendrás un error. Ver [GUIA_INICIO_SESION.md](GUIA_INICIO_SESION.md) para soluciones.
+
+> 🔐 **Credenciales de prueba**: Usuario: `admin` | Contraseña: `admin123`
+
 ### Método 1: Iniciar Todo el Sistema
 
 ```powershell
@@ -52,7 +56,8 @@ Esto iniciará automáticamente:
 .\detener-sistema.bat
 ```
 
-📖 **Guía Completa de Scripts**: Ver [COMO_USAR_SCRIPTS.md](COMO_USAR_SCRIPTS.md)
+📖 **Guía Completa de Scripts**: Ver [COMO_USAR_SCRIPTS.md](COMO_USAR_SCRIPTS.md)  
+🔐 **¿Error de Login/Puerto 8080?**: Ver [GUIA_INICIO_SESION.md](GUIA_INICIO_SESION.md)
 
 ## 📋 Stack Tecnológico
 
@@ -265,6 +270,20 @@ jwt:
 - **[COMO_USAR_SCRIPTS.md](COMO_USAR_SCRIPTS.md)** - Guía de scripts de inicialización
 
 ## 🐛 Troubleshooting
+
+### Error: "No puedo iniciar sesión" o "Error de login (puerto 8080)"
+
+**Ve a la guía completa**: [GUIA_INICIO_SESION.md](GUIA_INICIO_SESION.md)
+
+**Causa más común**: El backend NO está corriendo. El frontend intenta conectarse pero no encuentra el servidor.
+
+**Solución rápida**:
+```powershell
+.\iniciar-backend.bat
+# Espera hasta ver "Started Application"
+# Luego en otra terminal:
+.\iniciar-frontend.bat
+```
 
 ### Error: "Puerto 8080 ya en uso"
 ```powershell

@@ -1,0 +1,3 @@
+CREATE SCHEMA IF NOT EXISTS ext;
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp" SCHEMA ext;
+ALTER DATABASE ehrbase SET IntervalStyle = 'iso_8601';

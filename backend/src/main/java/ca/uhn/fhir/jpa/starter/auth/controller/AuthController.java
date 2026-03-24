@@ -6,6 +6,7 @@ import ca.uhn.fhir.jpa.starter.auth.dto.SignupRequest;
 import ca.uhn.fhir.jpa.starter.auth.model.User;
 import ca.uhn.fhir.jpa.starter.auth.service.AuthService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -22,7 +23,7 @@ import java.util.Map;
  * - GET /api/auth/validate - Validación de tokens JWT
  */
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping(value = "/api/auth", produces = MediaType.APPLICATION_JSON_VALUE)
 @CrossOrigin(origins = "*", maxAge = 3600)
 public class AuthController {
     

@@ -6,26 +6,36 @@ echo.
 
 cd /d "%~dp0backend"
 
-echo [1/3] Verificando PostgreSQL y puerto 8080
-docker ps | findstr ehrbase-server > nul 2>&1
-if not errorlevel 1 docker stop ehrbase-server > nul 2>&1
-
+echo [1/3] Verificando servicios de base de datos
 docker ps | findstr hapi-fhir-postgres > nul 2>&1
 if not errorlevel 1 (
-    echo PostgreSQL ya esta corriendo
+    echo PostgreSQL FHIR ya esta corriendo
 ) else (
-    echo Iniciando PostgreSQL
-    docker-compose up -d
+    echo Iniciando PostgreSQL FHIR
+    docker compose up -d hapi-fhir-postgres
     if errorlevel 1 (
-        echo Error al iniciar PostgreSQL
+        echo Error al iniciar PostgreSQL FHIR
         pause
         exit /b 1
     )
-    echo PostgreSQL iniciado
-    echo.
-    echo [2/3] Esperando PostgreSQL 10 segundos
-    timeout /t 10 /nobreak > nul
 )
+
+docker ps | findstr ehrbase-server > nul 2>&1
+if not errorlevel 1 (
+    echo EHRbase ya esta corriendo
+) else (
+    echo Iniciando EHRbase
+    docker compose up -d ehrbase-postgres ehrbase-server
+    if errorlevel 1 (
+        echo Error al iniciar EHRbase
+        pause
+        exit /b 1
+    )
+)
+
+echo.
+echo [2/3] Esperando servicios 12 segundos
+timeout /t 12 /nobreak > nul
 
 echo.
 echo [3/3] Iniciando Backend Spring Boot  

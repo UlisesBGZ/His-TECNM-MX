@@ -6,6 +6,7 @@ import ca.uhn.fhir.jpa.starter.auth.model.User;
 import ca.uhn.fhir.jpa.starter.auth.service.AuthService;
 import ca.uhn.fhir.jpa.starter.auth.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -23,7 +24,7 @@ import java.util.Map;
  * - PUT /api/users/{id}/toggle-status - Habilitar/deshabilitar usuario (solo admin)
  */
 @RestController
-@RequestMapping("/api/users")
+@RequestMapping(value = "/api/users", produces = MediaType.APPLICATION_JSON_VALUE)
 @CrossOrigin(origins = "*", maxAge = 3600)
 public class UserController {
     

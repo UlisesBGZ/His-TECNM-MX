@@ -16,6 +16,7 @@ class UserService {
     final token = await _getToken();
     return {
       'Content-Type': 'application/json',
+      'Accept': 'application/json',
       'Authorization': 'Bearer $token',
     };
   }
@@ -32,15 +33,16 @@ class UserService {
       if (response.statusCode == 200) {
         final List<dynamic> jsonList = jsonDecode(response.body);
         return jsonList.map((json) => UserResponse.fromJson(json)).toList();
-      } else if (response.statusCode == 403) {
-        throw Exception('No tienes permisos para ver usuarios');
+      } else if (response.statusCode == 401 || response.statusCode == 403) {
+        throw Exception(
+            'Sesión expirada o sin permisos. Por favor inicia sesión de nuevo.');
       } else {
         final error = jsonDecode(response.body);
         throw Exception(error['error'] ?? 'Error al obtener usuarios');
       }
     } catch (e) {
       if (e is Exception) {
-        throw e;
+        rethrow;
       }
       throw Exception('Error de conexión: ${e.toString()}');
     }
@@ -67,7 +69,7 @@ class UserService {
       }
     } catch (e) {
       if (e is Exception) {
-        throw e;
+        rethrow;
       }
       throw Exception('Error de conexión: ${e.toString()}');
     }
@@ -97,7 +99,7 @@ class UserService {
       }
     } catch (e) {
       if (e is Exception) {
-        throw e;
+        rethrow;
       }
       throw Exception('Error de conexión: ${e.toString()}');
     }
@@ -127,7 +129,7 @@ class UserService {
       }
     } catch (e) {
       if (e is Exception) {
-        throw e;
+        rethrow;
       }
       throw Exception('Error de conexión: ${e.toString()}');
     }

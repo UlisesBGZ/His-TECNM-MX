@@ -11,11 +11,17 @@ services:
       SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT: ca.uhn.fhir.jpa.model.dialect.HapiFhirPostgresDialect
       APP_JWT_SECRET: "MySecretKeyForJWTAuthenticationThatIsAtLeast256BitsLongForHS256Algorithm"
       APP_JWT_EXPIRATION: "86400000"
+      VIRTUALEHR_EHRBASE_BASE_URL: "http://ehrbase-server:8080/ehrbase/"
+      VIRTUALEHR_EHRBASE_USERNAME: "ehrbase"
+      VIRTUALEHR_EHRBASE_PASSWORD: "ehrbase"
+      VIRTUALEHR_FHIR_LINKAGE_NAMESPACE: "HOSPITAL_FHIR_SYSTEM"
     ports:
       - "8080:8080"
     depends_on:
       hapi-fhir-postgres:
         condition: service_healthy
+      ehrbase-server:
+        condition: service_started
   hapi-fhir-postgres:
     image: postgres:16-alpine
     container_name: hapi-fhir-postgres
@@ -35,5 +41,50 @@ services:
     volumes:
       - hapi-fhir-postgres:/var/lib/postgresql/data
 
+  ehrbase-postgres:
+    image: ehrbase/ehrbase-v2-postgres:16.2
+    container_name: ehrbase-postgres
+    restart: always
+    ports:
+      - "5434:5432"
+    environment:
+      POSTGRES_USER: "postgres"
+      POSTGRES_PASSWORD: "postgres"
+      EHRBASE_USER_ADMIN: "ehrbase"
+      EHRBASE_PASSWORD_ADMIN: "ehrbase"
+      EHRBASE_USER: "ehrbase_restricted"
+      EHRBASE_PASSWORD: "ehrbase_restricted"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      start_period: 10s
+      retries: 10
+    volumes:
+      - ehrbase-postgres:/var/lib/postgresql/data
+
+  ehrbase-server:
+    image: ehrbase/ehrbase:next
+    container_name: ehrbase-server
+    restart: on-failure
+    ports:
+      - "8081:8080"
+    environment:
+      DB_URL: "jdbc:postgresql://ehrbase-postgres:5432/ehrbase"
+      DB_USER_ADMIN: "ehrbase"
+      DB_PASS_ADMIN: "ehrbase"
+      DB_USER: "ehrbase_restricted"
+      DB_PASS: "ehrbase_restricted"
+      SECURITY_AUTH_TYPE: "BASIC"
+      SECURITY_AUTHTYPE: "BASIC"
+      SECURITY_AUTH_USER: "ehrbase"
+      SECURITY_AUTH_PASSWORD: "ehrbase"
+      SERVER_NODENAME: "ehrbase"
+      SPRING_PROFILES_ACTIVE: "local"
+    depends_on:
+      ehrbase-postgres:
+        condition: service_healthy
+
 volumes:
   hapi-fhir-postgres:
+  ehrbase-postgres:

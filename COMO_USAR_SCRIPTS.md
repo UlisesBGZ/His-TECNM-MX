@@ -1,12 +1,21 @@
 # 🚀 Scripts de Iniciación - Hospital FHIR System
 
+## ⚠️ Regla Importante: no mezclar modos
+
+Usa solo uno de estos modos a la vez:
+
+- **Modo A (Recomendado para desarrollar):** Backend local con Maven + Docker solo para BD y EHRbase.
+- **Modo B (Docker completo):** Todo en contenedores (incluye backend).
+
+Si mezclas ambos, tendrás conflicto en el puerto `8080`.
+
 ## 📋 Scripts Disponibles
 
 ### 1️⃣ `iniciar-sistema.bat` - Inicia TODO el sistema
 **Uso**: Doble clic o `.\iniciar-sistema.bat`
 
 **Qué hace**:
-- ✅ Inicia PostgreSQL en Docker
+- ✅ Inicia PostgreSQL FHIR y EHRbase en Docker
 - ✅ Inicia Backend en nueva ventana
 - ✅ Inicia Frontend en nueva ventana
 
@@ -20,8 +29,7 @@
 **Uso**: Doble clic o `.\iniciar-backend.bat`
 
 **Qué hace**:
-- ✅ Verifica y libera puerto 8080
-- ✅ Inicia PostgreSQL si no está corriendo
+- ✅ Inicia PostgreSQL FHIR y EHRbase si no están corriendo
 - ✅ Inicia Backend Spring Boot
 
 **⚠️ IMPORTANTE**: Esta ventana debe permanecer ABIERTA
@@ -49,11 +57,30 @@
 **Qué hace**:
 - 🛑 Detiene todos los procesos Java (Backend)
 - 🛑 Detiene todos los procesos Flutter (Frontend)
-- 🛑 Detiene PostgreSQL en Docker
+- 🛑 Detiene servicios Docker (PostgreSQL + EHRbase)
 
 ---
 
 ## 🎯 Flujos de Trabajo Recomendados
+
+### Flujo 0: Docker completo (sin scripts, todo en contenedor)
+```powershell
+# Inicia backend + FHIR + EHRbase en Docker
+cd .\backend
+docker compose up -d
+
+docker compose up -d --build #Esto sirve para limpiar el docker 
+
+# En otra terminal (opcional), inicia solo frontend local
+cd .\frontend
+flutter run -d chrome
+
+# Para detener Docker completo
+cd ..\backend
+docker compose down
+```
+
+**Nota**: En este flujo NO ejecutes `iniciar-backend.bat` ni `iniciar-sistema.bat`.
 
 ### Flujo 1: Desarrollo Normal (usar una vez al día)
 ```powershell
@@ -104,10 +131,10 @@
 
 ### Error: "Puerto 8080 ya en uso"
 **Solución 1**: Ejecuta `.\detener-sistema.bat`
-**Solución 2**: Detén contenedores Docker que usen 8080:
+**Solución 2**: Si estás en Docker completo, detén el backend en contenedor:
 ```powershell
-docker ps
-docker stop <nombre-del-contenedor>
+cd .\backend
+docker compose down
 ```
 
 ### Error: "Backend no está respondiendo"
@@ -117,6 +144,10 @@ docker stop <nombre-del-contenedor>
 ### PostgreSQL no inicia
 **Causa**: Docker Desktop no está corriendo
 **Solución**: Abre Docker Desktop y espera que inicie
+
+### Error: "No puedo iniciar sesión" o "Error en login"
+**Causa**: El backend no está corriendo o hay problemas de conectividad
+**Solución Completa**: Ver [GUIA_INICIO_SESION.md](GUIA_INICIO_SESION.md) - Guía paso a paso para resolver errores de login
 
 ---
 
@@ -137,4 +168,6 @@ docker stop <nombre-del-contenedor>
 ## 📚 Más Información
 
 - [README.md](README.md) - Documentación completa del proyecto
-- [backend/CONTEXTO_PARA_NUEVA_SESION.md](backend/CONTEXTO_PARA_NUEVA_SESION.md) - Contexto técnico detallado
+- [GUIA_INICIO_SESION.md](GUIA_INICIO_SESION.md) - 🔐 Solución de errores de login y puerto 8080
+- [backend/README.md](backend/README.md) - Documentación técnica del backend
+- [frontend/README.md](frontend/README.md) - Documentación del frontend

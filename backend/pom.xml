@@ -39,6 +39,8 @@
         <commons.logging.version>1.3.5</commons.logging.version>
         <spring_boot_version>3.5.9</spring_boot_version>
         <postgresql.version>42.7.9</postgresql.version>
+        <openehr-sdk.version>2.30.0</openehr-sdk.version>
+        <jackson.compat.version>2.17.2</jackson.compat.version>
     </properties>
 
     <!-- one-liner to take you to the cloud with settings from the application.yaml file: -->
@@ -125,6 +127,28 @@
             <groupId>ca.uhn.hapi.fhir</groupId>
             <artifactId>hapi-fhir-base</artifactId>
             <version>${project.parent.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>ca.uhn.hapi.fhir</groupId>
+            <artifactId>hapi-fhir-client</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+
+        <!-- openEHR SDK -->
+        <dependency>
+            <groupId>org.ehrbase.openehr.sdk</groupId>
+            <artifactId>client</artifactId>
+            <version>${openehr-sdk.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.ehrbase.openehr.sdk</groupId>
+            <artifactId>serialisation</artifactId>
+            <version>${openehr-sdk.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.ehrbase.openehr.sdk</groupId>
+            <artifactId>web-template</artifactId>
+            <version>${openehr-sdk.version}</version>
         </dependency>
         <!-- This dependency includes the EmailSenderImpl we will be using instead of standard javamail.-->
         <dependency>
@@ -483,6 +507,23 @@
             <scope>test</scope>
         </dependency>
 
+        <!-- Compatibilidad openEHR SDK con PropertyNamingStrategy.SNAKE_CASE -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>${jackson.compat.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-core</artifactId>
+            <version>${jackson.compat.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-annotations</artifactId>
+            <version>${jackson.compat.version}</version>
+        </dependency>
+
     </dependencies>
 
     <build>
@@ -557,6 +598,24 @@
                 <version>${maven.compiler.version}</version>
                 <configuration>
                     <release>${java.version}</release>
+                </configuration>
+            </plugin>
+
+            <!-- openEHR SDK generator: genera clases Java tipadas desde .opt -->
+            <plugin>
+                <groupId>org.ehrbase.openehr.sdk</groupId>
+                <artifactId>generator-maven-plugin</artifactId>
+                <version>${openehr-sdk.version}</version>
+                <configuration>
+                    <outputDirectory>${project.build.directory}/generated-sources</outputDirectory>
+                    <packageName>ca.uhn.fhir.jpa.starter.openehr.generated</packageName>
+                    <optimizerSetting>SECTION</optimizerSetting>
+                    <addNullFlavor>true</addNullFlavor>
+                    <choicesForSingleEvent>false</choicesForSingleEvent>
+                    <templateFiles>
+                        <!-- Agrega aqui cada archivo .opt disponible en src/main/resources/templates -->
+                        <templateFile>${project.basedir}/src/main/resources/templates/clinical_summary.opt</templateFile>
+                    </templateFiles>
                 </configuration>
             </plugin>
 

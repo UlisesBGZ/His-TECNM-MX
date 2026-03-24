@@ -15,7 +15,7 @@ class AuthProvider with ChangeNotifier {
   String? get error => _error;
   bool get isLoggedIn => _user != null;
 
-  // Initialize - check if user is already logged in
+  // Initialize - check if user is already logged in with a valid token
   Future<void> initialize() async {
     _isLoading = true;
     notifyListeners();
@@ -23,7 +23,13 @@ class AuthProvider with ChangeNotifier {
     try {
       final isLoggedIn = await _authService.isLoggedIn();
       if (isLoggedIn) {
-        _user = await _authService.getUser();
+        final isValid = await _authService.isTokenValid();
+        if (isValid) {
+          _user = await _authService.getUser();
+        } else {
+          // Token expired or invalid - clear session so login screen shows
+          await _authService.logout();
+        }
       }
     } catch (e) {
       _error = e.toString();
