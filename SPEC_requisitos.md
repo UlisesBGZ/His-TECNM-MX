@@ -25,7 +25,6 @@ Documentar que necesita el sistema para ejecutarse y que funcionalidades cubre.
 - Navegador Chrome.
 
 ## Nota de version de Java
-- Java 25 LTS: probado en compilacion (build OK).
 - Version recomendada para el equipo: Java 21 LTS (base estable de desarrollo).
 
 ## Puertos usados
