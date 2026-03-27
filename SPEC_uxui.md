@@ -1,26 +1,43 @@
 # SPEC UX/UI
 
-## Objetivo UX
-Permitir operacion rapida para personal clinico/administrativo con flujos directos y pocos pasos.
+## Objetivo
+Permitir operacion clinica y administrativa con friccion minima, mensajes claros y navegacion por rol.
 
-## Principios de interfaz
-- Login claro con feedback inmediato de errores.
-- Navegacion por modulos segun rol.
-- Pantallas CRUD con estados visibles: cargando, exito, error, vacio.
-- Acciones sensibles con confirmacion (ej. eliminar usuario).
+## Base tecnologica UX
+- UI framework: Flutter Material 3.
+- Estado de UI: Provider.
+- Persistencia de sesion en cliente: shared_preferences.
+- Comunicacion: HTTP JSON hacia `/api/auth`, `/api/users`, `/fhir`, `/api/virtual-ehr`.
 
-## Pantallas clave
-- Login.
-- Home con modulos segun rol.
-- Gestion de usuarios (admin).
-- Listados y formularios de pacientes, citas, medicamentos y reportes.
+## Usuarios objetivo
+- Admin: gestiona usuarios y configuracion operativa.
+- Usuario clinico: opera modulos de pacientes, citas, medicamentos y reportes.
 
-## Reglas de experiencia
-- Mostrar mensajes accionables (no errores tecnicos crudos).
-- Mantener consistencia de labels y validaciones.
-- Priorizar legibilidad y respuesta inmediata de la UI.
+## Flujos criticos
+- UX-01 Login: ingreso, error de credenciales y estado de carga visibles.
+- UX-02 Home por rol: acceso solo a modulos permitidos.
+- UX-03 CRUD: listar, crear, editar y eliminar con confirmaciones.
+- UX-04 Error de sesion: informar expiracion/permisos y reautenticacion.
+
+## Reglas UX
+- Mensajes accionables, sin exponer trazas tecnicas.
+- Estados obligatorios por pantalla: cargando, vacio, error, exito.
+- Confirmacion previa en acciones destructivas.
+- Consistencia en labels, botones y feedback visual.
+- Errores de autenticacion/permisos deben guiar a re-login.
+
+## Criterios de aceptacion UX
+- CA-UX-01: un usuario identifica su siguiente accion en cada pantalla.
+- CA-UX-02: errores muestran causa funcional y accion sugerida.
+- CA-UX-03: no hay rutas administrativas visibles para roles no admin.
+- CA-UX-04: al expirar sesion, la app informa y redirige a autenticacion.
+- CA-UX-05: operaciones CRUD muestran confirmacion o error controlado en menos de un flujo de pantalla.
 
 ## Accesibilidad minima
-- Contraste adecuado en textos/acciones.
-- Botones y controles con tamano suficiente para uso clinico.
-- Estados de error visibles y entendibles.
+- Contraste legible en textos y acciones principales.
+- Controles tactiles con tamano adecuado.
+- Estados de error perceptibles y comprensibles.
+
+## No objetivo UX en esta fase
+- Personalizacion avanzada por perfil.
+- Internacionalizacion multiidioma completa.

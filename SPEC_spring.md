@@ -1,38 +1,52 @@
 # SPEC Spring
 
-## Stack
-- Spring Boot 3.5.9
-- HAPI FHIR 8.6.1
-- Maven Wrapper
-- PostgreSQL
-- JWT (JJWT) + BCrypt
+## Proposito
+Definir el alcance del backend Spring/HAPI y sus reglas operativas para desarrollo y mantenimiento.
 
-## Modulos principales
-- auth:
-  - login/signup/create-admin/validate token
-  - servicio de usuarios y roles
-- users:
-  - endpoints administrativos protegidos por rol admin
-- fhir:
-  - servidor FHIR R4 bajo /fhir
-- virtualehr:
-  - orquestacion con EHRbase/openEHR
+## Stack base
+- Spring Boot 3.5.9.
+- HAPI FHIR 8.6.1 (FHIR R4).
+- Java 17+ (recomendado 21 LTS).
+- Maven Wrapper (build local sin Maven global).
+- PostgreSQL driver 42.7.9 + motor PostgreSQL 16.
+- JWT: JJWT 0.12.6 (`jjwt-api`, `jjwt-impl`, `jjwt-jackson`).
+- Hash de password: jBCrypt 0.4.
+- openEHR SDK 2.30.0.
 
-## API base
-- /api/auth
-- /api/users
-- /fhir
-- /api/virtual-ehr
+## Modulos
+- `auth`: login, signup, create-admin, validate token.
+- `users`: administracion de usuarios por rol admin.
+- `fhir`: endpoints estandar FHIR en `/fhir`.
+- `virtualehr`: orquestacion FHIR + EHRbase.
+
+## Superficie API
+- `/api/auth`
+- `/api/users`
+- `/fhir`
+- `/api/virtual-ehr`
 
 ## Reglas backend
-- Respuestas en JSON en endpoints REST custom.
-- Validacion de token Bearer antes de operaciones protegidas.
-- Restriccion por rol en endpoints de administracion.
+- Endpoints REST custom devuelven JSON.
+- Endpoints protegidos requieren `Authorization: Bearer`.
+- Operaciones administrativas requieren rol admin.
+- En virtual EHR, aplicar compensacion ante falla parcial.
+- CORS habilitado para consumo desde frontend web.
 
 ## Ejecucion
-- Windows: .\mvnw.cmd spring-boot:run -Pboot
-- Tests: .\mvnw.cmd test
+- Run (Windows): `.\mvnw.cmd spring-boot:run -Pboot`.
+- Tests: `.\mvnw.cmd test`.
 
 ## Integracion infraestructura
-- docker-compose para Postgres FHIR, EHRbase y Postgres EHRbase.
-- Variables de entorno para URLs/credenciales entre servicios.
+- Docker Compose para PostgreSQL FHIR/Auth + EHRbase + PostgreSQL EHRbase.
+- Variables de entorno para URLs, credenciales y JWT secret/expiracion.
+
+## Calidad minima esperada
+- Compilacion sin errores.
+- Tests unitarios en verde.
+- Health de servicios dependientes operativo antes de pruebas funcionales.
+
+## Criterios de aceptacion tecnicos
+- CA-SPR-01: login retorna JWT valido y claims esperados.
+- CA-SPR-02: `/api/users` bloquea acceso sin rol admin.
+- CA-SPR-03: `/fhir/metadata` responde correctamente.
+- CA-SPR-04: flujo virtual EHR crea linkage o compensa ante falla.

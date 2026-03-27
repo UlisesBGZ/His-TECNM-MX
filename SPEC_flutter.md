@@ -1,31 +1,48 @@
 # SPEC Flutter
 
+## Proposito
+Definir la arquitectura del cliente Flutter y sus contratos de integracion con backend.
+
 ## Stack
-- Flutter 3.x / Dart 3.x
-- Provider para estado
-- http para consumo API
-- shared_preferences para token/sesion
-- Material 3 para UI
+- Flutter: objetivo 3.27.3.
+- Dart: objetivo 3.6.1 (pubspec: `>=3.0.0 <4.0.0`).
+- Provider: ^6.1.1.
+- http: ^1.2.0.
+- shared_preferences: ^2.2.2.
+- Material 3 + `google_fonts` ^6.1.0.
+- Soporte i18n base: `flutter_localizations` + `intl` ^0.19.0.
 
-## Estructura base
-- lib/config: configuracion de endpoints.
-- lib/models: modelos de datos.
-- lib/services: llamadas HTTP y parseo.
-- lib/providers: estado global de autenticacion.
-- lib/screens: UI por modulo.
+## Estructura
+- `lib/config`: endpoints y configuracion de red.
+- `lib/models`: DTOs/modelos de UI.
+- `lib/services`: cliente HTTP y parseo.
+- `lib/providers`: estado de autenticacion/sesion.
+- `lib/screens`: presentacion por modulo.
 
-## Responsabilidades
-- Mostrar interfaz por rol.
-- Gestionar sesion (login/logout, lectura de token, validacion de token en inicio).
-- Consumir endpoints de auth/users/FHIR.
-- Manejar errores de red y permisos con mensajes claros.
+## Responsabilidades funcionales
+- Renderizar UI por rol.
+- Gestionar login/logout y token local.
+- Validar sesion al iniciar app.
+- Consumir `/api/auth`, `/api/users`, `/fhir`, `/api/virtual-ehr`.
+- Traducir errores de red/permisos a mensajes accionables.
 
-## Ejecucion
-- Desarrollo rapido: usar scripts .bat del root.
-- Manual:
-  - flutter pub get
-  - flutter run -d chrome
+## Contratos tecnicos
+- Header requerido en rutas protegidas: `Authorization: Bearer <token>`.
+- Formato esperado backend custom: JSON.
+- Errores HTTP 401/403: mostrar mensaje funcional y forzar flujo de reautenticacion.
 
-## Testing
-- flutter test
-- Enfoque actual: servicios y widgets principales.
+## Reglas de implementacion
+- Separar logica de red (services) de presentacion (screens).
+- Evitar acoplar widgets a detalles HTTP.
+- Mantener estados explicitos: loading/error/data/empty.
+- Evitar almacenamiento de secretos fuera de mecanismos definidos por la app.
+
+## Ejecucion y calidad
+- Ejecucion rapida: scripts `.bat` del root.
+- Ejecucion manual: `flutter pub get` + `flutter run -d chrome`.
+- Validacion: `flutter test` y `flutter analyze`.
+
+## Criterios de calidad
+- Compila y corre en web sin errores bloqueantes.
+- Tests de servicios y widgets en verde.
+- Navegacion por rol y manejo de sesion consistentes con backend.
