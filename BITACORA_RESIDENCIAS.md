@@ -871,3 +871,87 @@ docs: Consolidar documentacion en 3 READMEs principales
 - [Backend README](backend/README.md)
 - [Frontend README](frontend/README.md)
 - [Guía de Scripts](COMO_USAR_SCRIPTS.md)
+
+## Abril 2026 - Sprint EJ 5 (Residencias)
+
+### Contexto del sprint
+Sprint orientado a replicar y mejorar lo logrado el semestre anterior bajo la nueva arquitectura (FHIR + EHRbase), con documentacion SPEC operativa para desarrollo asistido por agentes.
+
+### Historias y estatus (corte actual)
+- HIS-79: Crear arquetipos base (considerar metodo de autenticacion) - Finalizado.
+- HIS-126: Capacitacion en desarrollo con IA - Finalizado.
+- HIS-139: Revisar posible uso de Java 25 - Finalizado.
+- HIS-134: Crear o refinar documentos SPEC (revisar SDD) - En revision.
+- HIS-135: Replicar mejora del expediente clinico del semestre pasado - En ejecucion (avance funcional implementado).
+- HIS-106: Desarrollar historias mas significativas - Por hacer.
+
+### Actividades complementarias del sprint (documentadas)
+
+1. Capacitacion en desarrollo con IA (HIS-126)
+- Se realizo una capacitacion practica para mejorar el uso de IA como apoyo en analisis, documentacion y validacion de cambios.
+- Se estandarizo el uso de prompts tecnicos y criterios de aceptacion para reducir retrabajo.
+- Resultado: mayor velocidad en tareas de especificacion y mejor trazabilidad de decisiones tecnicas.
+
+2. Replicacion de capturas y referencias del proyecto anterior (HIS-135)
+- Se retomaron capturas y pantallas de referencia del semestre pasado para comparar el comportamiento esperado contra la nueva arquitectura.
+- Esta replicacion se uso para validar equivalencia funcional y detectar diferencias de UX en el flujo de expediente clinico.
+- Resultado: base visual consistente para documentar avances 1:1 y justificar ajustes en la nueva version.
+
+3. Revision del posible uso de Java 25 (HIS-139)
+- Se analizo la viabilidad tecnica de Java 25 para el proyecto, considerando compatibilidad de dependencias, build y estabilidad operativa.
+- Se definio como linea de trabajo mantener Java 21 LTS como recomendacion del equipo y dejar Java 25 como evaluacion controlada.
+- Resultado: decision tecnica documentada para evitar riesgos de incompatibilidad en etapa de residencia.
+
+4. Creacion y refinamiento de documentos SPEC (HIS-134)
+- Se crearon y ajustaron SPEC de arquitectura, spring, flutter, requisitos y UX/UI alineados al SDD tecnico.
+- Se incorporaron criterios de aceptacion, alcance MVP, reglas operativas y baseline de versiones.
+- Resultado: marco documental unificado para guiar desarrollo, soporte y trabajo asistido por agentes.
+
+### Logros tecnicos implementados en Sprint 5
+
+1. Estandarizacion de receta medica (FHIR MedicationRequest)
+- Definicion normativa en SPEC_receta_normativa.md.
+- Validacion minima obligatoria en frontend y backend.
+- Interceptor backend para rechazo de recetas incompletas o inconsistentes.
+- Evidencia E2E documentada en SPEC_validacion_receta_e2e.md.
+
+2. Flujo multi-medicamento dentro de una misma receta clinica
+- Captura secuencial con accion "Guardar y agregar otro".
+- Un MedicationRequest por medicamento (modelo FHIR correcto).
+- Agrupacion por groupIdentifier para trazabilidad de receta compuesta.
+- Visualizacion agrupada en listado para revision y edicion.
+
+3. Registro universal de pacientes y vinculacion FHIR-EHR
+- Alta unificada en endpoint POST /api/virtual-ehr/patients.
+- Consulta de enlace en GET /api/virtual-ehr/patients/{fhirPatientId}/linkage.
+- Manejo robusto en UI para estado sin EHR / con EHR.
+
+4. Ajustes clave de UX y estabilidad
+- Correccion de overflows visuales en tarjetas de inicio y formulario de paciente.
+- Correccion de baja logica de pacientes con integridad referencial (active=false) sin perder trazabilidad.
+- Restablecimiento de visibilidad de pacientes activos y legacy (sin campo active definido).
+
+5. Modulo de expediente clinico (avance funcional replicado)
+- Vista de lista de expedientes por paciente.
+- Vista de detalle del expediente por secciones.
+- Wizard de captura por pasos (estructura base de 9 pasos).
+- Captura estructurada de antecedentes no patologicos (tabaquismo, alcoholismo, vivienda).
+- Captura estructurada de signos vitales (TA, FC, FR, temperatura, peso, talla).
+- Correccion de lectura en detalle para que signos vitales se muestren en su seccion y con titulos en negritas.
+
+### Documentacion y trazabilidad actualizada
+- SPEC_tareas.md actualizado con cierre de T-07 y T-08.
+- SPEC_requisitos.md actualizado con reglas de receta multiple.
+- SPEC_receta_normativa.md actualizado con regla y visualizacion de agrupacion.
+- SPEC_validacion_receta_e2e.md con evidencia de validacion runtime.
+
+### Riesgos y pendientes inmediatos
+- Completar version 1:1 del formulario de expediente clinico con todos los campos exactos solicitados por arquetipo institucional.
+- Agregar validaciones clinicas de rango para signos vitales.
+- Implementar pruebas automatizadas para flujo receta multiple y expediente clinico.
+- Cerrar HIS-134 pasando de "En revision" a "Finalizado" tras validacion documental con asesor.
+
+### Resultado acumulado del Sprint 5 (hasta hoy)
+- Se consolidaron capacidades funcionales clave del MVP clinico.
+- El flujo paciente -> EHR -> expediente -> receta ya existe de extremo a extremo en modo operativo de desarrollo.
+- Queda pendiente el cierre fino de campos/arquetipo y cobertura de pruebas para cierre formal del sprint.

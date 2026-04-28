@@ -1,6 +1,7 @@
 package ca.uhn.fhir.jpa.starter.virtualehr.service;
 
 import ca.uhn.fhir.jpa.starter.virtualehr.dto.CreatePatientRequestDto;
+import ca.uhn.fhir.jpa.starter.virtualehr.dto.PatientLinkageResponseDto;
 import ca.uhn.fhir.jpa.starter.virtualehr.dto.UnifiedPatientRecordResponseDto;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
@@ -22,13 +23,23 @@ public class PatientOrchestratorService {
     @Transactional
     public UnifiedPatientRecordResponseDto createUnifiedPatientRecord(CreatePatientRequestDto request) {
         String fhirPatientId = fhirPatientService.createPatient(request);
+        String displayName = request.getGivenName();
+        String familyName = request.getEffectiveFamilyName();
+        if (familyName != null && !familyName.isBlank()) {
+            displayName = displayName + " " + familyName;
+        }
 
         try {
             UUID ehrId = ehrbaseEhrService.createLinkedEhr(fhirPatientId);
+            fhirPatientService.attachEhrLinkage(
+                fhirPatientId,
+                ehrId,
+                ehrbaseEhrService.getLinkageNamespace());
+
             return new UnifiedPatientRecordResponseDto(
                     fhirPatientId,
                     ehrId.toString(),
-                    request.getGivenName() + " " + request.getFamilyName(),
+                    displayName,
                     ehrbaseEhrService.getLinkageNamespace());
         } catch (Exception ex) {
             try {
@@ -42,5 +53,9 @@ public class PatientOrchestratorService {
             throw new IllegalStateException(
                     "EHRbase creation failed. FHIR Patient was compensated (deleted).", ex);
         }
+    }
+
+    public PatientLinkageResponseDto getPatientLinkage(String fhirPatientId) {
+        return fhirPatientService.getPatientLinkage(fhirPatientId);
     }
 }

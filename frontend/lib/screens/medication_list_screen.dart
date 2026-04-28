@@ -22,6 +22,36 @@ class _MedicationListScreenState extends State<MedicationListScreen> {
   String _selectedStatus = 'all';
   final TextEditingController _searchController = TextEditingController();
 
+  List<_MedicationGroup> _buildGroups(List<FhirMedicationRequest> medications) {
+    final grouped = <String, List<FhirMedicationRequest>>{};
+
+    for (final medication in medications) {
+      final key =
+          medication.groupIdentifier?.trim().isNotEmpty == true
+              ? medication.groupIdentifier!.trim()
+              : 'single-${medication.id ?? medication.hashCode}';
+      grouped.putIfAbsent(key, () => <FhirMedicationRequest>[]).add(medication);
+    }
+
+    final groups = grouped.entries.map((entry) {
+      final meds = [...entry.value]
+        ..sort((a, b) {
+          final aTime = a.authoredOn?.millisecondsSinceEpoch ?? 0;
+          final bTime = b.authoredOn?.millisecondsSinceEpoch ?? 0;
+          return bTime.compareTo(aTime);
+        });
+      return _MedicationGroup(groupKey: entry.key, medications: meds);
+    }).toList();
+
+    groups.sort((a, b) {
+      final aTime = a.latestAuthoredOn?.millisecondsSinceEpoch ?? 0;
+      final bTime = b.latestAuthoredOn?.millisecondsSinceEpoch ?? 0;
+      return bTime.compareTo(aTime);
+    });
+
+    return groups;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -121,14 +151,14 @@ class _MedicationListScreenState extends State<MedicationListScreen> {
 
   Color _getStatusColor(String status) {
     switch (status) {
+      case 'draft':
+        return Colors.blueGrey;
       case 'active':
         return Colors.green;
       case 'completed':
         return Colors.blue;
       case 'cancelled':
         return Colors.red;
-      case 'stopped':
-        return Colors.orange;
       case 'on-hold':
         return Colors.yellow.shade700;
       default:
@@ -138,14 +168,14 @@ class _MedicationListScreenState extends State<MedicationListScreen> {
 
   IconData _getStatusIcon(String status) {
     switch (status) {
+      case 'draft':
+        return Icons.edit_note;
       case 'active':
         return Icons.medication;
       case 'completed':
         return Icons.check_circle;
       case 'cancelled':
         return Icons.cancel;
-      case 'stopped':
-        return Icons.stop_circle;
       case 'on-hold':
         return Icons.pause_circle;
       default:
@@ -197,16 +227,14 @@ class _MedicationListScreenState extends State<MedicationListScreen> {
                   ),
                   items: const [
                     DropdownMenuItem(value: 'all', child: Text('Todos')),
+                    DropdownMenuItem(value: 'draft', child: Text('Borradores')),
                     DropdownMenuItem(value: 'active', child: Text('Activas')),
                     DropdownMenuItem(
                         value: 'completed', child: Text('Completadas')),
                     DropdownMenuItem(
                         value: 'cancelled', child: Text('Canceladas')),
                     DropdownMenuItem(
-                        value: 'stopped', child: Text('Detenidas')),
-                    DropdownMenuItem(
                         value: 'on-hold', child: Text('En espera')),
-                    DropdownMenuItem(value: 'draft', child: Text('Borradores')),
                   ],
                   onChanged: (value) {
                     setState(() {
@@ -303,17 +331,63 @@ class _MedicationListScreenState extends State<MedicationListScreen> {
       );
     }
 
+    final groups = _buildGroups(_filteredMedications);
+
     return RefreshIndicator(
       onRefresh: _loadMedications,
       child: ListView.builder(
         padding: const EdgeInsets.all(16),
-        itemCount: _filteredMedications.length,
+        itemCount: groups.length,
         itemBuilder: (context, index) {
-          return _buildMedicationCard(
-            _filteredMedications[index],
+          return _buildMedicationGroupCard(
+            groups[index],
             user?.isAdmin ?? false,
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildMedicationGroupCard(_MedicationGroup group, bool isAdmin) {
+    final first = group.medications.first;
+    final hasMany = group.medications.length > 1;
+
+    if (!hasMany) {
+      return _buildMedicationCard(first, isAdmin);
+    }
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: ExpansionTile(
+        leading: CircleAvatar(
+          backgroundColor: Colors.indigo,
+          child: Text(
+            group.medications.length.toString(),
+            style: const TextStyle(color: Colors.white),
+          ),
+        ),
+        title: Text(
+          'Receta agrupada (${group.medications.length} medicamentos)',
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 4),
+            Text('Paciente: ${first.patientName ?? 'Sin nombre'}'),
+            if (first.dateDisplay != null) Text('Fecha: ${first.dateDisplay}'),
+            Text(
+              'Grupo: ${group.groupKey}',
+              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+            ),
+          ],
+        ),
+        children: group.medications
+            .map((medication) => Padding(
+                  padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+                  child: _buildMedicationCard(medication, isAdmin),
+                ))
+            .toList(),
       ),
     );
   }
@@ -353,7 +427,7 @@ class _MedicationListScreenState extends State<MedicationListScreen> {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
-                    color: _getStatusColor(medication.status).withOpacity(0.2),
+                    color: _getStatusColor(medication.status).withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
@@ -450,5 +524,23 @@ class _MedicationListScreenState extends State<MedicationListScreen> {
               },
       ),
     );
+  }
+}
+
+class _MedicationGroup {
+  final String groupKey;
+  final List<FhirMedicationRequest> medications;
+
+  _MedicationGroup({required this.groupKey, required this.medications});
+
+  DateTime? get latestAuthoredOn {
+    if (medications.isEmpty) return null;
+    return medications
+        .map((m) => m.authoredOn)
+        .whereType<DateTime>()
+        .fold<DateTime?>(null, (latest, current) {
+      if (latest == null) return current;
+      return current.isAfter(latest) ? current : latest;
+    });
   }
 }

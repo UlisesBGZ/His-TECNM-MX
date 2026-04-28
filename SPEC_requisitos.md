@@ -3,6 +3,11 @@
 ## Proposito
 Definir el alcance funcional y tecnico del MVP para residentes nuevos, mantenimiento e IA de soporte.
 
+## Base starter
+- Este documento se mantiene alineado con el backend HAPI FHIR JPA Starter usado por el proyecto.
+- Superficie base del starter: `/api/auth`, `/api/users`, `/fhir` y flujo virtual EHR sobre el mismo backend.
+- El alcance del MVP agrega extensiones sobre esa base sin contradecirla.
+
 ## Fuente de referencia
 - Base tecnica alineada con `backend/documentacion_tecnica/DOCUMENTACION_TECNICA_RESIDENCIA.md` (SDD tecnico del proyecto).
 
@@ -16,15 +21,28 @@ Definir el alcance funcional y tecnico del MVP para residentes nuevos, mantenimi
 - Cliente frontend: Flutter (objetivo documentado: 3.27.3) + Dart (objetivo: 3.6.1; pubspec permite `>=3.0.0 <4.0.0`).
 - Estado frontend: Provider ^6.1.1.
 - Cliente HTTP frontend: http ^1.2.0.
-- Infra local: Docker + Docker Compose.
+- Infra local: Docker + Docker Compose.a
 
-## Requisitos funcionales (MVP)
+## Requisitos funcionales base del starter
 - RF-01: Iniciar sesion con JWT.
 - RF-02: Control de acceso por rol (Admin, Usuario).
 - RF-03: Administracion de usuarios (listar, eliminar, activar/desactivar) para Admin.
 - RF-04: Gestion clinica sobre recursos FHIR R4 (Patient, Practitioner, Appointment, Observation).
 - RF-05: Operacion desde frontend Flutter web.
-- RF-06: Orquestacion virtual EHR (creacion paciente FHIR + vinculo EHRbase).
+
+## Extensiones del MVP sobre el starter
+- RF-06: Registro universal de pacientes, independiente del medico tratante.
+- RF-07: Orquestacion virtual EHR (creacion paciente FHIR + vinculo EHRbase).
+- RF-08: Creacion y seguimiento de encuentros con estatus pendiente, activa y finalizada.
+- RF-09: Captura de antecedentes demograficos y clinicos base conforme a las pantallas aprobadas.
+- RF-10: Captura y gestion de receta medica estandarizada con validacion clinica minima y trazabilidad del prescriptor.
+
+## Alcance minimo de captura del paciente
+- Identificacion: CURP o identificador institucional.
+- Datos personales: nombre(s), apellido paterno, apellido materno, sexo y fecha de nacimiento.
+- Contacto: telefono, correo electronico y direccion.
+- Datos clinicos base: tipo de sangre y antecedentes clinicos relevantes.
+- Antecedentes clinicos generales.
 
 ## Requisitos no funcionales
 - RNF-01 Interoperabilidad: API compatible con HL7 FHIR R4.
@@ -32,12 +50,28 @@ Definir el alcance funcional y tecnico del MVP para residentes nuevos, mantenimi
 - RNF-03 Persistencia: PostgreSQL 16 para FHIR/Auth y PostgreSQL dedicado para EHRbase.
 - RNF-04 Portabilidad: ejecucion en Docker Compose (modo completo o servicios base).
 - RNF-05 Mantenibilidad: separacion por capas/modulos y documentacion operativa.
+- RNF-06 Cumplimiento normativo: campos de captura alineados a la NOM-024-SSA3-2012 para expediente clinico electronico.
+- RNF-07 Trazabilidad de receta: toda prescripcion debe conservar fecha, prescriptor y estado de ciclo de vida.
+
+## Reglas de negocio criticas
+- RB-01: Un paciente existe una sola vez en el sistema y puede ser consultado por cualquier especialista autorizado.
+- RB-02: Un paciente no pertenece a un solo doctor; pertenece al expediente institucional.
+- RB-03: Todo encuentro debe tener un estado definido y visible.
+- RB-04: Los datos clinicos viven en EHRbase; los datos estructurados/demograficos viven en FHIR.
+- RB-05: El ID generado por EHRbase debe vincularse al paciente FHIR dentro del flujo virtual EHR.
+- RB-06: Los formularios deben separar datos demograficos, contacto y antecedentes generales.
+- RB-07: Una receta valida requiere paciente, medicamento, dosis/instrucciones, cantidad, fecha y prescriptor identificable.
+- RB-08: Si se prescriben multiples medicamentos para el mismo evento clinico, cada uno debe almacenarse como `MedicationRequest` independiente y compartir un identificador de grupo.
 
 ## Criterios minimos de cumplimiento
 - RF-01/RF-02: login valido devuelve token y restringe rutas por rol.
 - RF-03: endpoints de usuarios responden solo para admin.
 - RF-04: recursos FHIR disponibles en `/fhir`.
-- RF-06: alta unificada retorna identificadores FHIR/EHR o error controlado.
+- RF-06/RF-07: alta unificada retorna identificadores FHIR/EHR o error controlado.
+- RF-08: encuentros no pueden quedar sin estado.
+- RF-09: la captura respeta el formato definido por el arquetipo y la NOM-024-SSA3-2012.
+- RF-10: receta usa plantilla estandar definida en `SPEC_receta_normativa.md` y mapea a `MedicationRequest` con campos minimos obligatorios.
+- RF-10/RB-08: captura multiple de medicamentos conserva validaciones por item y trazabilidad comun de receta.
 - RNF-02: password no se almacena en texto plano; token obligatorio en rutas protegidas.
 
 ## Requisitos tecnicos minimos

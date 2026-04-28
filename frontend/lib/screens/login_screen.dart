@@ -90,9 +90,9 @@ class _LoginScreenState extends State<LoginScreen>
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              Theme.of(context).primaryColor.withOpacity(0.8),
+              Theme.of(context).primaryColor.withValues(alpha: 0.8),
               Theme.of(context).primaryColor,
-              Theme.of(context).primaryColor.withOpacity(0.6),
+              Theme.of(context).primaryColor.withValues(alpha: 0.6),
             ],
           ),
         ),
@@ -106,7 +106,7 @@ class _LoginScreenState extends State<LoginScreen>
                   position: _slideAnimation,
                   child: Card(
                     elevation: 8,
-                    shadowColor: Colors.black.withOpacity(0.3),
+                    shadowColor: Colors.black.withValues(alpha: 0.3),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(24),
                     ),
@@ -131,14 +131,14 @@ class _LoginScreenState extends State<LoginScreen>
                                       Theme.of(context).primaryColor,
                                       Theme.of(context)
                                           .primaryColor
-                                          .withOpacity(0.7),
+                                          .withValues(alpha: 0.7),
                                     ],
                                   ),
                                   boxShadow: [
                                     BoxShadow(
                                       color: Theme.of(context)
                                           .primaryColor
-                                          .withOpacity(0.3),
+                                          .withValues(alpha: 0.3),
                                       blurRadius: 20,
                                       spreadRadius: 5,
                                     ),
@@ -296,14 +296,14 @@ class _LoginScreenState extends State<LoginScreen>
                                         Theme.of(context).primaryColor,
                                         Theme.of(context)
                                             .primaryColor
-                                            .withOpacity(0.8),
+                                            .withValues(alpha: 0.8),
                                       ],
                                     ),
                                     boxShadow: [
                                       BoxShadow(
                                         color: Theme.of(context)
                                             .primaryColor
-                                            .withOpacity(0.3),
+                                            .withValues(alpha: 0.3),
                                         blurRadius: 8,
                                         offset: const Offset(0, 4),
                                       ),

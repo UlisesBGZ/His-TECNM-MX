@@ -4,7 +4,7 @@ import '../providers/auth_provider.dart';
 import 'login_screen.dart';
 import 'user_management_screen.dart';
 import 'patient_list_screen.dart';
-import 'appointment_list_screen.dart';
+import 'encounter_list_screen.dart';
 import 'medication_list_screen.dart';
 import 'report_list_screen.dart';
 
@@ -127,7 +127,7 @@ class _HomeScreenState extends State<HomeScreen>
                                       Theme.of(context).primaryColor,
                                       Theme.of(context)
                                           .primaryColor
-                                          .withOpacity(0.7)
+                                          .withValues(alpha: 0.7)
                                     ],
                             ),
                             borderRadius: BorderRadius.circular(20),
@@ -136,7 +136,7 @@ class _HomeScreenState extends State<HomeScreen>
                                 color: (user.isAdmin
                                         ? Colors.orange
                                         : Theme.of(context).primaryColor)
-                                    .withOpacity(0.3),
+                                    .withValues(alpha: 0.3),
                                 blurRadius: 15,
                                 offset: const Offset(0, 8),
                               ),
@@ -162,7 +162,7 @@ class _HomeScreenState extends State<HomeScreen>
                                                   ? Colors.orange
                                                   : Theme.of(context)
                                                       .primaryColor)
-                                              .withOpacity(0.4),
+                                              .withValues(alpha: 0.4),
                                           blurRadius: 12,
                                           spreadRadius: 2,
                                         ),
@@ -270,7 +270,7 @@ class _HomeScreenState extends State<HomeScreen>
                                               BorderRadius.circular(20),
                                           boxShadow: [
                                             BoxShadow(
-                                              color: color1.withOpacity(0.3),
+                                              color: color1.withValues(alpha: 0.3),
                                               blurRadius: 4,
                                               offset: const Offset(0, 2),
                                             ),
@@ -323,6 +323,7 @@ class _HomeScreenState extends State<HomeScreen>
                       physics: const NeverScrollableScrollPhysics(),
                       mainAxisSpacing: 16,
                       crossAxisSpacing: 16,
+                      childAspectRatio: 0.78,
                       children: [
                         // Pestañas solo para doctores (NO para admins)
                         if (!user.isAdmin) ...[
@@ -344,14 +345,14 @@ class _HomeScreenState extends State<HomeScreen>
                           _buildFeatureCard(
                             context,
                             icon: Icons.medical_services,
-                            title: 'Citas',
-                            subtitle: 'Programar citas',
+                            title: 'Encuentros',
+                            subtitle: 'Gestion de encuentros',
                             color: Colors.green,
                             animationIndex: 1,
                             onTap: () {
                               Navigator.of(context).push(
                                 MaterialPageRoute(
-                                  builder: (_) => const AppointmentListScreen(),
+                                  builder: (_) => const EncounterListScreen(),
                                 ),
                               );
                             },
@@ -431,7 +432,7 @@ class _HomeScreenState extends State<HomeScreen>
                             borderRadius: BorderRadius.circular(16),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.blue.withOpacity(0.3),
+                                color: Colors.blue.withValues(alpha: 0.3),
                                 blurRadius: 12,
                                 offset: const Offset(0, 6),
                               ),
@@ -540,60 +541,73 @@ class _HomeScreenState extends State<HomeScreen>
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    color.withOpacity(0.7),
+                    color.withValues(alpha: 0.7),
                     color,
                   ],
                 ),
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: color.withOpacity(0.3),
+                    color: color.withValues(alpha: 0.3),
                     blurRadius: 8,
                     offset: const Offset(0, 4),
                   ),
                 ],
               ),
               child: Padding(
-                padding: const EdgeInsets.all(20.0),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.9),
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
+                padding: const EdgeInsets.all(14.0),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final iconSize = constraints.maxHeight < 210 ? 34.0 : 40.0;
+                    final titleSize = constraints.maxHeight < 210 ? 15.0 : 17.0;
+                    final subtitleSize =
+                        constraints.maxHeight < 210 ? 12.0 : 13.0;
+
+                    return Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.9),
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.1),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
-                      child: Icon(icon, size: 40, color: color),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 17,
-                        color: Colors.white,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      subtitle,
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.white.withOpacity(0.9),
-                        fontWeight: FontWeight.w500,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
+                          child: Icon(icon, size: iconSize, color: color),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: titleSize,
+                            color: Colors.white,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          subtitle,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: subtitleSize,
+                            color: Colors.white.withValues(alpha: 0.9),
+                            fontWeight: FontWeight.w500,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    );
+                  },
                 ),
               ),
             ),
@@ -619,10 +633,10 @@ class _HomeScreenState extends State<HomeScreen>
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
             decoration: BoxDecoration(
-              color: accentColor.withOpacity(0.1),
+              color: accentColor.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
               border: Border.all(
-                color: accentColor.withOpacity(0.3),
+                color: accentColor.withValues(alpha: 0.3),
                 width: 1,
               ),
             ),

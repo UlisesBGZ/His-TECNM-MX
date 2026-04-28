@@ -12,6 +12,7 @@ class FhirMedicationRequest {
   final int? daysSupply;
   final DateTime? authoredOn;
   final String? note;
+  final String? groupIdentifier;
 
   FhirMedicationRequest({
     this.id,
@@ -27,6 +28,7 @@ class FhirMedicationRequest {
     this.daysSupply,
     this.authoredOn,
     this.note,
+    this.groupIdentifier,
   });
 
   factory FhirMedicationRequest.fromJson(Map<String, dynamic> json) {
@@ -87,6 +89,12 @@ class FhirMedicationRequest {
       note = json['note'][0]['text'];
     }
 
+    String? groupIdentifier;
+    if (json['groupIdentifier'] != null &&
+        json['groupIdentifier']['value'] != null) {
+      groupIdentifier = json['groupIdentifier']['value'];
+    }
+
     return FhirMedicationRequest(
       id: json['id'],
       status: json['status'] ?? 'active',
@@ -101,6 +109,7 @@ class FhirMedicationRequest {
       daysSupply: days,
       authoredOn: authored,
       note: note,
+      groupIdentifier: groupIdentifier,
     );
   }
 
@@ -156,6 +165,13 @@ class FhirMedicationRequest {
 
     if (authoredOn != null) {
       json['authoredOn'] = authoredOn!.toIso8601String();
+    }
+
+    if (groupIdentifier != null && groupIdentifier!.isNotEmpty) {
+      json['groupIdentifier'] = {
+        'system': 'http://hospital.com/fhir/CodeSystem/receta-grupo',
+        'value': groupIdentifier,
+      };
     }
 
     if (note != null && note!.isNotEmpty) {

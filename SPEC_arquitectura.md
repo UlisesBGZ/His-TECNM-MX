@@ -13,6 +13,12 @@ Describir la arquitectura ejecutable del proyecto en formato corto para desarrol
 - Datos: PostgreSQL 16 + EHRbase (imagen `next`) con PostgreSQL 16.2 dedicado.
 - Integracion openEHR: openEHR SDK 2.30.0.
 
+## Modelo funcional de informacion
+- Paciente universal: registro unico y reutilizable por cualquier especialista.
+- Encuentro: unidad de atencion clinica con estado `pendiente`, `activa` o `finalizada`.
+- Separacion de dominios: datos demograficos/estructurados en FHIR; datos clinicos semanticos en EHRbase.
+- Vinculo tecnico: el EHR ID generado por EHRbase debe asociarse al paciente FHIR para trazabilidad.
+
 ## Vista de contenedores
 - C1 Frontend: Flutter web (UI, estado, consumo de APIs).
 - C2 Backend: Spring Boot + HAPI FHIR (logica, auth, FHIR, virtual EHR).
@@ -49,12 +55,24 @@ Describir la arquitectura ejecutable del proyecto en formato corto para desarrol
 2. Backend crea Patient en FHIR.
 3. Backend crea EHR en EHRbase.
 4. Si falla EHRbase, aplica compensacion (rollback funcional de Patient).
+5. Backend registra el enlace entre ambos IDs para consulta futura.
+
+## Flujo de encuentros
+1. Se crea un Encounter asociado al paciente universal.
+2. El estado se determina por fecha/hora del evento y contexto operativo.
+3. El encounter puede evolucionar de pendiente a activa y luego a finalizada.
+4. El frontend debe reflejar el estado sin ambiguedad.
 
 ## Decisiones de arquitectura
 - Mantener API REST custom separada de API FHIR para simplificar seguridad y UX.
 - Usar JWT stateless para evitar sesion servidor tradicional.
 - Usar Docker Compose para reproducibilidad local.
 - Aplicar compensacion en integraciones distribuidas para reducir inconsistencia funcional.
+- Mantener FHIR como fuente estructurada institucional y EHRbase como repositorio clinico semantico.
+
+## Cumplimiento normativo
+- Los campos de captura deben seguir el arquetipo definido y la NOM aplicable al expediente clinico electronico.
+- Los formularios deben distinguir datos demograficos y antecedentes clinicos generales segun las pantallas aprobadas.
 
 ## Convenciones de despliegue
 - Modo A: backend local + Docker para BD/EHRbase.

@@ -50,7 +50,7 @@ void main() {
       // Then
       expect(patient.id, equals('1059'));
       expect(patient.firstName, equals('Pao'));
-      expect(patient.lastName, equals('Lopez'));
+      expect(patient.paternalLastName, equals('Lopez'));
       expect(patient.identifier, equals('123456789'));
       expect(patient.gender, equals('female'));
       expect(patient.birthDate, equals('1990-05-15'));
@@ -78,7 +78,7 @@ void main() {
       // Then
       expect(patient.id, equals('1234'));
       expect(patient.firstName, equals('John'));
-      expect(patient.lastName, equals('Smith'));
+      expect(patient.paternalLastName, equals('Smith'));
       expect(patient.identifier, isNull);
       expect(patient.phone, isNull);
       expect(patient.email, isNull);
@@ -89,13 +89,13 @@ void main() {
       final patient = FhirPatient(
         id: '1001',
         firstName: 'Test',
-        lastName: 'Patient',
+        paternalLastName: 'Patient',
         identifier: '987654321',
         gender: 'male',
         birthDate: '1985-10-20',
         phone: '555-9876',
         email: 'test@example.com',
-        address: '456 Oak Ave',
+        streetAndNumber: '456 Oak Ave',
       );
 
       // When
@@ -153,18 +153,17 @@ void main() {
   });
 
   group('FhirService - URL Construction Tests', () {
-    test('Debe construir correctamente URL de búsqueda de pacientes', () {
+    test('Debe construir correctamente URL de listado universal de pacientes',
+        () {
       // Given
       const baseUrl = 'http://192.168.20.225:8080/fhir';
-      const practitionerId = '1052';
 
       // When
-      const url =
-          '$baseUrl/Patient?general-practitioner=Practitioner/$practitionerId&_count=50&_total=accurate';
+      const url = '$baseUrl/Patient?_count=50&_total=accurate';
 
       // Then
       expect(url, contains('/fhir/Patient'));
-      expect(url, contains('general-practitioner=Practitioner/1052'));
+      expect(url, isNot(contains('general-practitioner=')));
       expect(url, contains('_count=50'));
       expect(url, contains('_total=accurate'));
     });

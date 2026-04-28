@@ -16,8 +16,8 @@ virtualehr:
     linkage-namespace: HOSPITAL_FHIR_SYSTEM
   ehrbase:
     base-url: http://localhost:8081/ehrbase/
-    username: ehrbase-user
-    password: SuperSecretPassword
+    username: ehrbase
+    password: ehrbase
 
 management:
   # Actuator endpoints: only /actuator/health exposed by default
@@ -400,7 +400,8 @@ hapi:
     # comma-separated package names, will be @ComponentScan'ed by Spring to allow for creating custom Spring beans
 
     # custom-bean-packages:
-    # custom-interceptor-classes:
+    custom-interceptor-classes:
+      - ca.uhn.fhir.jpa.starter.validation.MedicationRequestNormativeValidationInterceptor
     # custom-provider-classes:
     
     # store_meta_source_information: NONE

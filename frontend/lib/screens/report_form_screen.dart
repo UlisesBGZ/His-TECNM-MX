@@ -6,8 +6,13 @@ import '../services/fhir_service.dart';
 
 class ReportFormScreen extends StatefulWidget {
   final FhirDiagnosticReport? report;
+  final FhirPatient? initialPatient;
 
-  const ReportFormScreen({super.key, this.report});
+  const ReportFormScreen({
+    super.key,
+    this.report,
+    this.initialPatient,
+  });
 
   @override
   State<ReportFormScreen> createState() => _ReportFormScreenState();
@@ -46,6 +51,15 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
       // Poblar campos después de cargar los pacientes
       if (widget.report != null) {
         _populateFields();
+      } else if (widget.initialPatient != null) {
+        final initialId = widget.initialPatient!.id;
+        if (initialId != null) {
+          _selectedPatient = _patients.where((p) => p.id == initialId).isNotEmpty
+              ? _patients.firstWhere((p) => p.id == initialId)
+              : widget.initialPatient;
+        } else {
+          _selectedPatient = widget.initialPatient;
+        }
       }
     } catch (e) {
       setState(() => _isLoading = false);

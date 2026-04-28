@@ -173,24 +173,6 @@ class _ReportListScreenState extends State<ReportListScreen> {
     }
   }
 
-  IconData _getStatusIcon(String status) {
-    switch (status) {
-      case 'final':
-        return Icons.check_circle;
-      case 'preliminary':
-        return Icons.pending;
-      case 'registered':
-        return Icons.assignment;
-      case 'cancelled':
-        return Icons.cancel;
-      case 'amended':
-      case 'corrected':
-        return Icons.edit;
-      default:
-        return Icons.description;
-    }
-  }
-
   IconData _getCategoryIcon(String? category) {
     switch (category) {
       case 'LAB':
@@ -228,7 +210,7 @@ class _ReportListScreenState extends State<ReportListScreen> {
               color: Theme.of(context).colorScheme.surface,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withValues(alpha: 0.05),
                   blurRadius: 4,
                   offset: const Offset(0, 2),
                 ),
@@ -409,7 +391,7 @@ class _ReportListScreenState extends State<ReportListScreen> {
                                     leading: CircleAvatar(
                                       backgroundColor:
                                           _getStatusColor(report.status)
-                                              .withOpacity(0.2),
+                                              .withValues(alpha: 0.2),
                                       child: Icon(
                                         _getCategoryIcon(report.category),
                                         color: _getStatusColor(report.status),
@@ -442,7 +424,7 @@ class _ReportListScreenState extends State<ReportListScreen> {
                                               label: Text(report.statusDisplay),
                                               backgroundColor:
                                                   _getStatusColor(report.status)
-                                                      .withOpacity(0.2),
+                                                      .withValues(alpha: 0.2),
                                               labelStyle: TextStyle(
                                                 color: _getStatusColor(
                                                     report.status),
@@ -458,7 +440,7 @@ class _ReportListScreenState extends State<ReportListScreen> {
                                                 label: Text(
                                                     report.categoryDisplay),
                                                 backgroundColor: Colors.grey
-                                                    .withOpacity(0.2),
+                                                    .withValues(alpha: 0.2),
                                                 labelStyle: const TextStyle(
                                                   fontSize: 12,
                                                 ),

@@ -2,7 +2,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 
-import 'package:fhir_hospital_app/services/auth_service.dart';
 import 'package:fhir_hospital_app/models/auth_models.dart';
 
 /// Tests unitarios para AuthService
@@ -11,10 +10,7 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('AuthService - Login Tests', () {
-    late AuthService authService;
-
     setUp(() {
-      authService = AuthService();
       SharedPreferences.setMockInitialValues({});
     });
 

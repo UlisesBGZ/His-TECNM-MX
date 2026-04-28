@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import '../models/fhir_patient.dart';
 import '../services/fhir_service.dart';
 import '../providers/auth_provider.dart';
+import 'clinical_record_list_screen.dart';
+import 'clinical_record_wizard_screen.dart';
 import 'patient_form_screen.dart';
 
 class PatientListScreen extends StatefulWidget {
@@ -177,6 +179,109 @@ class _PatientListScreenState extends State<PatientListScreen> {
     }
   }
 
+  FhirPatient _patientWithLinkage(
+    FhirPatient patient,
+    String? ehrId,
+    String? linkageNamespace,
+  ) {
+    return FhirPatient(
+      id: patient.id,
+      identifier: patient.identifier,
+      firstName: patient.firstName,
+      paternalLastName: patient.paternalLastName,
+      maternalLastName: patient.maternalLastName,
+      gender: patient.gender,
+      birthDate: patient.birthDate,
+      bloodType: patient.bloodType,
+      state: patient.state,
+      municipality: patient.municipality,
+      postalCode: patient.postalCode,
+      streetAndNumber: patient.streetAndNumber,
+      colony: patient.colony,
+      phone: patient.phone,
+      email: patient.email,
+      clinicalAntecedents: patient.clinicalAntecedents,
+      ehrId: ehrId,
+      linkageNamespace: linkageNamespace,
+      address: patient.address,
+    );
+  }
+
+  Future<void> _refreshPatientLinkage(FhirPatient patient) async {
+    if (patient.id == null) return;
+
+    try {
+      final linkage = await _fhirService.verifyPatientLinkage(patient.id!);
+      final bool linked = linkage['linked'] == true;
+
+      if (!mounted) return;
+
+      if (linked) {
+        final updated = _patientWithLinkage(
+          patient,
+          linkage['ehrId']?.toString(),
+          linkage['linkageNamespace']?.toString(),
+        );
+
+        setState(() {
+          final index = _patients.indexWhere((p) => p.id == patient.id);
+          if (index != -1) {
+            _patients[index] = updated;
+          }
+          _filterPatients();
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Paciente vinculado. EHR ID: ${updated.ehrId}'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Aun sin EHR asignado para este paciente.'),
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('No se pudo validar enlace EHR: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _showCreateEhrPending(FhirPatient patient) async {
+    await _refreshPatientLinkage(patient);
+
+    if (!mounted) return;
+
+    final current = _patients.where((p) => p.id == patient.id).isNotEmpty
+        ? _patients.firstWhere((p) => p.id == patient.id)
+        : patient;
+
+    if (current.ehrId == null || current.ehrId!.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Este paciente aun no tiene EHR. Primero debe vincularse en backend.',
+          ),
+        ),
+      );
+      return;
+    }
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ClinicalRecordWizardScreen(patient: current),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final authProvider = context.watch<AuthProvider>();
@@ -201,7 +306,7 @@ class _PatientListScreenState extends State<PatientListScreen> {
               controller: _searchController,
               onChanged: _filterPatients,
               decoration: InputDecoration(
-                hintText: 'Buscar por nombre o cédula...',
+                hintText: 'Buscar por nombre o CURP...',
                 prefixIcon: const Icon(Icons.search),
                 suffixIcon: _searchController.text.isNotEmpty
                     ? IconButton(
@@ -321,71 +426,187 @@ class _PatientListScreenState extends State<PatientListScreen> {
   }
 
   Widget _buildPatientCard(FhirPatient patient, bool isAdmin) {
+    final hasEhr = patient.ehrId != null && patient.ehrId!.trim().isNotEmpty;
+
     return Card(
-      margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: patient.gender == 'male'
-              ? Colors.blue
-              : patient.gender == 'female'
-                  ? Colors.pink
-                  : Colors.grey,
-          child: Icon(
-            patient.gender == 'male'
-                ? Icons.man
-                : patient.gender == 'female'
-                    ? Icons.woman
-                    : Icons.person,
-            color: Colors.white,
-          ),
-        ),
-        title: Text(
-          patient.fullName,
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
-        subtitle: Column(
+      margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (patient.identifier != null)
-              Text('Cédula: ${patient.identifier}'),
-            if (patient.age != null)
-              Text('${patient.age} años • ${patient.genderDisplay}'),
-            if (patient.phone != null)
-              Text('Tel: ${patient.phone}',
-                  style: const TextStyle(fontSize: 12)),
-          ],
-        ),
-        trailing: isAdmin
-            ? null
-            : PopupMenuButton<String>(
-                onSelected: (value) {
-                  if (value == 'edit') {
-                    _navigateToForm(patient: patient);
-                  } else if (value == 'delete') {
-                    _confirmDelete(patient);
-                  }
-                },
-                itemBuilder: (context) => [
-                  const PopupMenuItem(
-                    value: 'edit',
-                    child: ListTile(
-                      leading: Icon(Icons.edit),
-                      title: Text('Editar'),
-                      contentPadding: EdgeInsets.zero,
+            Row(
+              children: [
+                CircleAvatar(
+                  backgroundColor: patient.gender == 'male'
+                      ? Colors.blue
+                      : patient.gender == 'female'
+                          ? Colors.pink
+                          : Colors.grey,
+                  child: Icon(
+                    patient.gender == 'male'
+                        ? Icons.man
+                        : patient.gender == 'female'
+                            ? Icons.woman
+                            : Icons.person,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    patient.fullName,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
                     ),
                   ),
-                  const PopupMenuItem(
-                    value: 'delete',
-                    child: ListTile(
-                      leading: Icon(Icons.delete, color: Colors.red),
-                      title:
-                          Text('Eliminar', style: TextStyle(color: Colors.red)),
-                      contentPadding: EdgeInsets.zero,
+                ),
+                if (!isAdmin)
+                  IconButton(
+                    onPressed: () => _navigateToForm(patient: patient),
+                    icon: const Icon(Icons.edit, color: Colors.green),
+                    tooltip: 'Editar',
+                  ),
+                if (!isAdmin)
+                  IconButton(
+                    onPressed: () => _confirmDelete(patient),
+                    icon: const Icon(Icons.delete, color: Colors.red),
+                    tooltip: 'Eliminar',
+                  ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 12,
+              runSpacing: 6,
+              children: [
+                if (patient.age != null)
+                  Text('${patient.age} años',
+                      style: const TextStyle(fontSize: 13)),
+                if (patient.phone != null && patient.phone!.isNotEmpty)
+                  Text('Tel: ${patient.phone}',
+                      style: const TextStyle(fontSize: 13)),
+                if (patient.bloodType != null && patient.bloodType!.isNotEmpty)
+                  Text(patient.bloodType!, style: const TextStyle(fontSize: 13)),
+              ],
+            ),
+            if (patient.identifier != null && patient.identifier!.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(
+                  'CURP: ${patient.identifier}',
+                  style: const TextStyle(fontSize: 13),
+                ),
+              ),
+            if (patient.address != null && patient.address!.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(
+                  patient.address!,
+                  style: const TextStyle(fontSize: 13),
+                ),
+              ),
+            const SizedBox(height: 10),
+            const Divider(height: 1),
+            const SizedBox(height: 10),
+            if (!hasEhr)
+              Row(
+                children: [
+                  const Expanded(
+                    child: Text(
+                      'Sin EHR asignado',
+                      style: TextStyle(
+                        color: Colors.deepPurple,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => _refreshPatientLinkage(patient),
+                    icon: const Icon(Icons.refresh),
+                    tooltip: 'Actualizar EHR',
+                  ),
+                  if (!isAdmin)
+                    FilledButton.tonalIcon(
+                      onPressed: () => _showCreateEhrPending(patient),
+                      icon: const Icon(Icons.add),
+                      label: const Text('Agregar EHR'),
+                    ),
+                ],
+              )
+            else
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.verified, size: 18, color: Colors.green),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          'EHR ID: ${patient.ehrId}',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: Colors.green,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.green.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: Colors.green.withValues(alpha: 0.2),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        const Expanded(
+                          child: Text(
+                            'Expediente clinico disponible',
+                            style: TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                        TextButton.icon(
+                          onPressed: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => ClinicalRecordListScreen(
+                                  patient: patient,
+                                ),
+                              ),
+                            );
+                          },
+                          icon: const Icon(Icons.folder_open),
+                          label: const Text('Abrir'),
+                        ),
+                        if (!isAdmin)
+                          TextButton.icon(
+                            onPressed: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => ClinicalRecordWizardScreen(
+                                    patient: patient,
+                                  ),
+                                ),
+                              );
+                            },
+                            icon: const Icon(Icons.add_circle_outline),
+                            label: const Text('Agregar'),
+                          ),
+                      ],
                     ),
                   ),
                 ],
               ),
-        onTap: isAdmin ? null : () => _navigateToForm(patient: patient),
+          ],
+        ),
       ),
     );
   }

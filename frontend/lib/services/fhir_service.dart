@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/fhir_patient.dart';
 import '../models/fhir_appointment.dart';
+import '../models/fhir_encounter.dart';
 import '../models/fhir_practitioner.dart';
 import '../models/fhir_medication_request.dart';
 import '../models/fhir_diagnostic_report.dart';
@@ -14,6 +15,9 @@ class FhirService {
   // 🔧 SOLO CAMBIA ESTAS IPs si corres en dispositivo móvil
   static const String _mobileBaseUrl = 'http://192.168.0.181:8080/fhir';
   static const String _webBaseUrl = 'http://localhost:8080/fhir';
+  static const String _mobileApiBaseUrl = 'http://192.168.0.181:8080/api';
+  static const String _webApiBaseUrl = 'http://localhost:8080/api';
+  static const String _tokenKey = 'auth_token';
 
   // Getter dinámico que detecta la plataforma
   static String get baseUrl {
@@ -24,12 +28,20 @@ class FhirService {
     }
   }
 
+  static String get apiBaseUrl {
+    if (kIsWeb) {
+      return _webApiBaseUrl;
+    } else {
+      return _mobileApiBaseUrl;
+    }
+  }
+
   // Caché en memoria del practitioner ID por userId
   static final Map<String, String> _practitionerCache = {};
 
   Future<String?> _getToken() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('token');
+    return prefs.getString(_tokenKey);
   }
 
   Future<User?> _getCurrentUser() async {
@@ -104,6 +116,15 @@ class FhirService {
     };
   }
 
+  Future<Map<String, String>> _getApiHeaders() async {
+    final token = await _getToken();
+    return {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      if (token != null) 'Authorization': 'Bearer $token',
+    };
+  }
+
   // ==================== PRACTITIONER METHODS ====================
 
   Future<FhirPractitioner?> getPractitionerByUserId(String userId) async {
@@ -165,50 +186,16 @@ class FhirService {
 
   // ==================== PATIENT METHODS ====================
 
-  // Obtener todos los pacientes del usuario actual
+  // Obtener pacientes del registro universal institucional
   Future<List<FhirPatient>> getPatients({int count = 50}) async {
     try {
       final headers = await _getHeaders();
-      final user = await _getCurrentUser();
 
-      // Si es admin, obtener todos los pacientes
-      if (user != null && user.isAdmin) {
-        final response = await http.get(
-          Uri.parse('$baseUrl/Patient?_count=$count&_total=accurate'),
-          headers: headers,
-        );
-
-        if (response.statusCode == 200) {
-          final bundle = json.decode(response.body);
-          if (bundle['entry'] == null) return [];
-
-          final List<FhirPatient> patients = [];
-          for (var entry in bundle['entry']) {
-            if (entry['resource'] != null) {
-              patients.add(FhirPatient.fromJson(entry['resource']));
-            }
-          }
-          return patients;
-        } else if (response.statusCode == 404) {
-          return [];
-        } else {
-          throw Exception('Error al obtener pacientes: ${response.statusCode}');
-        }
-      }
-
-      // Para usuarios normales, filtrar por practitioner
-      final practitionerId = await _getCurrentPractitionerId();
-      if (practitionerId == null) {
-        print('⚠️ No se pudo obtener practitioner ID');
-        return []; // No tiene practitioner asignado
-      }
-
-      // Usar _total=accurate y sin _sort para evitar problemas de paginación
-      // Agregar timestamp para evitar caché del navegador
+      // Usar _total=accurate y timestamp para evitar caché del navegador
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       final searchUrl =
-          '$baseUrl/Patient?general-practitioner=Practitioner/$practitionerId&_count=$count&_total=accurate&_t=$timestamp';
-      print('🔍 Buscando pacientes con URL: $searchUrl');
+          '$baseUrl/Patient?_count=$count&_total=accurate&_t=$timestamp';
+      print('🔍 Buscando pacientes del registro universal con URL: $searchUrl');
 
       final response = await http.get(
         Uri.parse(searchUrl),
@@ -239,7 +226,12 @@ class FhirService {
         int index = 0;
         for (var entry in bundle['entry']) {
           if (entry['resource'] != null) {
-            final patient = FhirPatient.fromJson(entry['resource']);
+            final resource = entry['resource'] as Map<String, dynamic>;
+            if (resource['active'] == false) {
+              continue;
+            }
+
+            final patient = FhirPatient.fromJson(resource);
             patients.add(patient);
             print(
                 '   [$index] Parseado: ID=${patient.id}, Nombre=${patient.fullName}');
@@ -259,21 +251,11 @@ class FhirService {
     }
   }
 
-  // Buscar pacientes por nombre (solo del usuario actual)
+  // Buscar pacientes por nombre en el registro universal
   Future<List<FhirPatient>> searchPatients(String query) async {
     try {
       final headers = await _getHeaders();
-      final user = await _getCurrentUser();
-
-      String url;
-      if (user != null && user.isAdmin) {
-        url = '$baseUrl/Patient?name=$query&_count=20';
-      } else {
-        final practitionerId = await _getCurrentPractitionerId();
-        if (practitionerId == null) return [];
-        url =
-            '$baseUrl/Patient?name=$query&general-practitioner=Practitioner/$practitionerId&_count=20';
-      }
+      final url = '$baseUrl/Patient?name=$query&_count=20';
 
       final response = await http.get(
         Uri.parse(url),
@@ -290,7 +272,11 @@ class FhirService {
         final List<FhirPatient> patients = [];
         for (var entry in bundle['entry']) {
           if (entry['resource'] != null) {
-            patients.add(FhirPatient.fromJson(entry['resource']));
+            final resource = entry['resource'] as Map<String, dynamic>;
+            if (resource['active'] == false) {
+              continue;
+            }
+            patients.add(FhirPatient.fromJson(resource));
           }
         }
 
@@ -327,7 +313,7 @@ class FhirService {
     }
   }
 
-  // Crear un nuevo paciente (vinculado al practitioner del usuario actual)
+  // Crear paciente con alta unificada FHIR + EHRbase
   Future<FhirPatient> createPatient(FhirPatient patient) async {
     try {
       final user = await _getCurrentUser();
@@ -337,42 +323,46 @@ class FhirService {
         throw Exception('Los administradores no pueden crear pacientes');
       }
 
-      print('Obteniendo practitioner para crear paciente...');
-      final practitionerId = await _getCurrentPractitionerId();
-      if (practitionerId == null) {
-        throw Exception('No se pudo obtener o crear el registro de médico. '
-            'Verifique su conexión y que el servidor FHIR esté funcionando correctamente.');
-      }
-      print('Practitioner obtenido: $practitionerId, creando paciente...');
+      final headers = await _getApiHeaders();
+      final requestBody = {
+        'identifier': patient.identifier,
+        'firstName': patient.firstName,
+        'paternalLastName': patient.paternalLastName,
+        'maternalLastName': patient.maternalLastName,
+        'gender': patient.gender,
+        'birthDate': patient.birthDate,
+        'bloodType': patient.bloodType,
+        'state': patient.state,
+        'municipality': patient.municipality,
+        'postalCode': patient.postalCode,
+        'streetAndNumber': patient.streetAndNumber,
+        'colony': patient.colony,
+        'phone': patient.phone,
+        'email': patient.email,
+        'clinicalAntecedents': patient.clinicalAntecedents,
+      };
 
-      final headers = await _getHeaders();
-      final patientJson = patient.toFhirJson();
-
-      // Agregar el practitioner al paciente
-      patientJson['generalPractitioner'] = [
-        {
-          'reference': 'Practitioner/$practitionerId',
-        }
-      ];
-
-      print('📋 JSON del paciente a crear: ${json.encode(patientJson)}');
-
-      final body = json.encode(patientJson);
+      print('📋 JSON de alta unificada: ${json.encode(requestBody)}');
 
       final response = await http.post(
-        Uri.parse('$baseUrl/Patient'),
+        Uri.parse('$apiBaseUrl/virtual-ehr/patients'),
         headers: headers,
-        body: body,
+        body: json.encode(requestBody),
       );
 
       print('📤 Response status: ${response.statusCode}');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        final resource = json.decode(response.body);
-        final createdPatient = FhirPatient.fromJson(resource);
+        final result = json.decode(response.body) as Map<String, dynamic>;
+        final fhirPatientId = result['fhirPatientId']?.toString();
+
+        if (fhirPatientId == null || fhirPatientId.isEmpty) {
+          throw Exception('La alta unificada no devolvio fhirPatientId');
+        }
+
+        final createdPatient = await getPatient(fhirPatientId);
         print('✅ Paciente creado exitosamente con ID: ${createdPatient.id}');
-        print(
-            '   generalPractitioner en respuesta: ${resource['generalPractitioner']}');
+        print('🔗 Vínculo EHRbase: ${createdPatient.ehrId ?? result['ehrId']}');
         return createdPatient;
       } else {
         final error = json.decode(response.body);
@@ -436,13 +426,83 @@ class FhirService {
         headers: headers,
       );
 
-      if (response.statusCode != 200 &&
-          response.statusCode != 204 &&
-          response.statusCode != 404) {
-        throw Exception('Error al eliminar paciente: ${response.statusCode}');
+      if (response.statusCode == 200 ||
+          response.statusCode == 204 ||
+          response.statusCode == 404) {
+        return;
       }
+
+      // Si el backend bloquea el borrado fisico por integridad referencial,
+      // aplicar baja logica (active=false) para conservar trazabilidad clinica.
+      if (response.statusCode == 409 || response.statusCode == 422) {
+        final patientResponse = await http.get(
+          Uri.parse('$baseUrl/Patient/$id'),
+          headers: headers,
+        );
+
+        if (patientResponse.statusCode != 200) {
+          throw Exception('No fue posible desactivar el paciente (lectura fallida)');
+        }
+
+        final patientJson =
+            json.decode(patientResponse.body) as Map<String, dynamic>;
+        patientJson['active'] = false;
+
+        final updateResponse = await http.put(
+          Uri.parse('$baseUrl/Patient/$id'),
+          headers: headers,
+          body: json.encode(patientJson),
+        );
+
+        if (updateResponse.statusCode == 200 || updateResponse.statusCode == 201) {
+          return;
+        }
+
+        String detail = 'Error al desactivar paciente: ${updateResponse.statusCode}';
+        try {
+          final errorJson = json.decode(updateResponse.body);
+          detail = errorJson['issue']?[0]?['diagnostics'] ?? detail;
+        } catch (_) {
+          // Mantener mensaje por defecto si no hay OperationOutcome parseable.
+        }
+        throw Exception(detail);
+      }
+
+      String detail = 'Error al eliminar paciente: ${response.statusCode}';
+      try {
+        final errorJson = json.decode(response.body);
+        detail = errorJson['issue']?[0]?['diagnostics'] ?? detail;
+      } catch (_) {
+        // Mantener mensaje por defecto si no hay OperationOutcome parseable.
+      }
+      throw Exception(detail);
     } catch (e) {
       throw Exception('Error al eliminar paciente: $e');
+    }
+  }
+
+  Future<Map<String, dynamic>> verifyPatientLinkage(
+      String fhirPatientId) async {
+    try {
+      final headers = await _getApiHeaders();
+      final response = await http.get(
+        Uri.parse('$apiBaseUrl/virtual-ehr/patients/$fhirPatientId/linkage'),
+        headers: headers,
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body) as Map<String, dynamic>;
+        return {
+          'linked': data['linked'] == true,
+          'fhirPatientId': data['fhirPatientId'],
+          'ehrId': data['ehrId'],
+          'linkageNamespace': data['linkageNamespace'],
+        };
+      }
+
+      throw Exception('Error al verificar enlace: ${response.statusCode}');
+    } catch (e) {
+      throw Exception('Error al verificar enlace FHIR/EHR: $e');
     }
   }
 
@@ -619,6 +679,203 @@ class FhirService {
     }
   }
 
+  // ==================== ENCOUNTER METHODS ====================
+
+  Future<List<FhirEncounter>> getEncounters({
+    int count = 50,
+    String? status,
+  }) async {
+    try {
+      final headers = await _getHeaders();
+      String url = '$baseUrl/Encounter?_count=$count&_sort=-date';
+
+      if (status != null && status.isNotEmpty && status != 'all') {
+        final fhirStatus = _mapEncounterStatusToFhir(status);
+        url += '&status=$fhirStatus';
+      }
+
+      final response = await http.get(Uri.parse(url), headers: headers);
+
+      if (response.statusCode == 200) {
+        final bundle = json.decode(response.body);
+        if (bundle['entry'] == null) return [];
+
+        final List<FhirEncounter> encounters = [];
+        for (var entry in bundle['entry']) {
+          if (entry['resource'] != null) {
+            encounters.add(FhirEncounter.fromJson(entry['resource']));
+          }
+        }
+        return encounters;
+      } else if (response.statusCode == 404) {
+        return [];
+      } else {
+        throw Exception('Error al obtener encuentros: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Error de conexion: $e');
+    }
+  }
+
+  Future<List<FhirEncounter>> searchEncountersByPatient(
+      String patientId) async {
+    try {
+      final headers = await _getHeaders();
+      final response = await http.get(
+        Uri.parse('$baseUrl/Encounter?subject=Patient/$patientId&_count=50'),
+        headers: headers,
+      );
+
+      if (response.statusCode == 200) {
+        final bundle = json.decode(response.body);
+        if (bundle['entry'] == null) return [];
+
+        final List<FhirEncounter> encounters = [];
+        for (var entry in bundle['entry']) {
+          if (entry['resource'] != null) {
+            encounters.add(FhirEncounter.fromJson(entry['resource']));
+          }
+        }
+        return encounters;
+      } else if (response.statusCode == 404) {
+        return [];
+      } else {
+        throw Exception('Error en busqueda: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Error de conexion: $e');
+    }
+  }
+
+  Future<FhirEncounter> getEncounter(String id) async {
+    try {
+      final headers = await _getHeaders();
+      final response = await http.get(
+        Uri.parse('$baseUrl/Encounter/$id'),
+        headers: headers,
+      );
+
+      if (response.statusCode == 200) {
+        final resource = json.decode(response.body);
+        return FhirEncounter.fromJson(resource);
+      } else if (response.statusCode == 404) {
+        throw Exception('Encuentro no encontrado');
+      } else {
+        throw Exception('Error al obtener encuentro: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Error de conexion: $e');
+    }
+  }
+
+  Future<FhirEncounter> createEncounter(FhirEncounter encounter) async {
+    try {
+      final headers = await _getHeaders();
+      final user = await _getCurrentUser();
+      final practitionerId = await _getCurrentPractitionerId();
+
+      final payload = FhirEncounter(
+        status: encounter.status,
+        reason: encounter.reason,
+        start: encounter.start,
+        end: encounter.end,
+        patientId: encounter.patientId,
+        patientName: encounter.patientName,
+        practitionerId: practitionerId,
+        practitionerName: user?.fullName,
+      );
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/Encounter'),
+        headers: headers,
+        body: json.encode(payload.toFhirJson()),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final resource = json.decode(response.body);
+        return FhirEncounter.fromJson(resource);
+      } else {
+        final error = json.decode(response.body);
+        throw Exception(error['issue']?[0]?['diagnostics'] ??
+            'Error al crear encuentro: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Error al crear encuentro: $e');
+    }
+  }
+
+  Future<FhirEncounter> updateEncounter(FhirEncounter encounter) async {
+    if (encounter.id == null) {
+      throw Exception('El encuentro debe tener un ID para actualizar');
+    }
+
+    try {
+      final headers = await _getHeaders();
+      final user = await _getCurrentUser();
+      final practitionerId = await _getCurrentPractitionerId();
+
+      final payload = FhirEncounter(
+        id: encounter.id,
+        status: encounter.status,
+        reason: encounter.reason,
+        start: encounter.start,
+        end: encounter.end,
+        patientId: encounter.patientId,
+        patientName: encounter.patientName,
+        practitionerId: practitionerId,
+        practitionerName: user?.fullName,
+      );
+
+      final response = await http.put(
+        Uri.parse('$baseUrl/Encounter/${encounter.id}'),
+        headers: headers,
+        body: json.encode(payload.toFhirJson()),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final resource = json.decode(response.body);
+        return FhirEncounter.fromJson(resource);
+      } else {
+        final error = json.decode(response.body);
+        throw Exception(error['issue']?[0]?['diagnostics'] ??
+            'Error al actualizar encuentro: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Error al actualizar encuentro: $e');
+    }
+  }
+
+  Future<void> deleteEncounter(String id) async {
+    try {
+      final headers = await _getHeaders();
+      final response = await http.delete(
+        Uri.parse('$baseUrl/Encounter/$id'),
+        headers: headers,
+      );
+
+      if (response.statusCode != 200 &&
+          response.statusCode != 204 &&
+          response.statusCode != 404) {
+        throw Exception('Error al eliminar encuentro: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Error al eliminar encuentro: $e');
+    }
+  }
+
+  String _mapEncounterStatusToFhir(String status) {
+    switch (status) {
+      case 'pending':
+        return 'planned';
+      case 'active':
+        return 'in-progress';
+      case 'finalized':
+        return 'finished';
+      default:
+        return status;
+    }
+  }
+
   // MedicationRequest methods
   Future<List<FhirMedicationRequest>> getMedicationRequests({
     int count = 100,
@@ -681,6 +938,31 @@ class FhirService {
     }
   }
 
+  Future<List<FhirMedicationRequest>> getMedicationRequestsByGroupIdentifier(
+    String groupIdentifier, {
+    String? patientId,
+    String? excludeMedicationId,
+    int count = 300,
+  }) async {
+    try {
+      final all = await getMedicationRequests(count: count);
+      return all.where((medication) {
+        if (medication.groupIdentifier != groupIdentifier) {
+          return false;
+        }
+        if (patientId != null && medication.patientId != patientId) {
+          return false;
+        }
+        if (excludeMedicationId != null && medication.id == excludeMedicationId) {
+          return false;
+        }
+        return true;
+      }).toList();
+    } catch (e) {
+      throw Exception('Error al cargar medicamentos agrupados: $e');
+    }
+  }
+
   Future<FhirMedicationRequest?> getMedicationRequest(String id) async {
     try {
       final headers = await _getHeaders();
@@ -725,6 +1007,7 @@ class FhirService {
         daysSupply: medicationRequest.daysSupply,
         authoredOn: medicationRequest.authoredOn ?? DateTime.now(),
         note: medicationRequest.note,
+        groupIdentifier: medicationRequest.groupIdentifier,
       );
 
       final headers = await _getHeaders();
