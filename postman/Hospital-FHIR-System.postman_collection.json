@@ -1,0 +1,363 @@
+{
+  "info": {
+    "name": "Hospital FHIR System — La Clemencia",
+    "description": "Colección completa de endpoints del sistema hospitalario FHIR + EHRbase",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_fhir", "value": "http://localhost:8080/fhir" },
+    { "key": "base_api",  "value": "http://localhost:8080/api" },
+    { "key": "base_ehr",  "value": "http://localhost:8081/ehrbase/rest/openehr/v1" },
+    { "key": "token",     "value": "" },
+    { "key": "patient_id","value": "" },
+    { "key": "ehr_id",    "value": "" }
+  ],
+  "item": [
+    {
+      "name": "🔐 Autenticación",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.token) {",
+                  "  pm.collectionVariables.set('token', res.token);",
+                  "  console.log('Token guardado:', res.token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"doctor1\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": "{{base_api}}/auth/login",
+            "description": "Inicia sesión y guarda el token automáticamente en la variable {{token}}"
+          }
+        },
+        {
+          "name": "Registro de usuario",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"doctor_nuevo\",\n  \"password\": \"password123\",\n  \"email\": \"doctor@hospital.com\",\n  \"firstName\": \"Juan\",\n  \"lastName\": \"García\"\n}"
+            },
+            "url": "{{base_api}}/auth/register"
+          }
+        }
+      ]
+    },
+    {
+      "name": "👤 Pacientes (FHIR)",
+      "item": [
+        {
+          "name": "Listar todos los pacientes",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Accept", "value": "application/fhir+json" }
+            ],
+            "url": {
+              "raw": "{{base_fhir}}/Patient?_count=50&_total=accurate",
+              "host": ["{{base_fhir}}"],
+              "path": ["Patient"],
+              "query": [
+                { "key": "_count", "value": "50" },
+                { "key": "_total", "value": "accurate" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Buscar paciente por nombre",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Accept", "value": "application/fhir+json" }
+            ],
+            "url": {
+              "raw": "{{base_fhir}}/Patient?name=Pancho&_count=20",
+              "host": ["{{base_fhir}}"],
+              "path": ["Patient"],
+              "query": [
+                { "key": "name", "value": "Pancho" },
+                { "key": "_count", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Obtener paciente por ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Accept", "value": "application/fhir+json" }
+            ],
+            "url": "{{base_fhir}}/Patient/{{patient_id}}",
+            "description": "Cambia {{patient_id}} por el ID numérico (ej: 1551)"
+          }
+        },
+        {
+          "name": "Crear paciente (alta unificada FHIR + EHR)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"identifier\": \"PAGJ000513HDFNZNA5\",\n  \"firstName\": \"Juan\",\n  \"paternalLastName\": \"Pérez\",\n  \"maternalLastName\": \"García\",\n  \"gender\": \"male\",\n  \"birthDate\": \"1990-05-13\",\n  \"bloodType\": \"O+\",\n  \"phone\": \"5551234567\",\n  \"email\": \"juan@example.com\",\n  \"state\": \"CDMX\",\n  \"municipality\": \"Cuauhtémoc\",\n  \"postalCode\": \"06600\",\n  \"streetAndNumber\": \"Av. Reforma 123\",\n  \"colony\": \"Centro\"\n}"
+            },
+            "url": "{{base_api}}/virtual-ehr/patients",
+            "description": "Crea el paciente en FHIR Y en EHRbase simultáneamente"
+          }
+        },
+        {
+          "name": "Eliminar paciente",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{base_fhir}}/Patient/{{patient_id}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "🔗 Virtual EHR (Linkage)",
+      "item": [
+        {
+          "name": "Verificar linkage FHIR ↔ EHR",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "url": "{{base_api}}/virtual-ehr/patients/{{patient_id}}/linkage",
+            "description": "Verifica si el paciente FHIR tiene un EHR vinculado en EHRbase"
+          }
+        }
+      ]
+    },
+    {
+      "name": "🏥 Encuentros (FHIR)",
+      "item": [
+        {
+          "name": "Listar todos los encuentros",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Accept", "value": "application/fhir+json" }
+            ],
+            "url": {
+              "raw": "{{base_fhir}}/Encounter?_count=50&_sort=-date",
+              "host": ["{{base_fhir}}"],
+              "path": ["Encounter"],
+              "query": [
+                { "key": "_count", "value": "50" },
+                { "key": "_sort", "value": "-date" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Encuentros de un paciente",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Accept", "value": "application/fhir+json" }
+            ],
+            "url": {
+              "raw": "{{base_fhir}}/Encounter?subject=Patient/{{patient_id}}&_count=50",
+              "host": ["{{base_fhir}}"],
+              "path": ["Encounter"],
+              "query": [
+                { "key": "subject", "value": "Patient/{{patient_id}}" },
+                { "key": "_count", "value": "50" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Crear encuentro",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/fhir+json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resourceType\": \"Encounter\",\n  \"status\": \"in-progress\",\n  \"class\": {\n    \"system\": \"http://terminology.hl7.org/CodeSystem/v3-ActCode\",\n    \"code\": \"AMB\"\n  },\n  \"subject\": {\n    \"reference\": \"Patient/{{patient_id}}\"\n  },\n  \"period\": {\n    \"start\": \"2026-05-07T10:00:00\"\n  },\n  \"reasonCode\": [{\n    \"text\": \"Revisión general\"\n  }]\n}"
+            },
+            "url": "{{base_fhir}}/Encounter"
+          }
+        }
+      ]
+    },
+    {
+      "name": "💊 Medicamentos (FHIR)",
+      "item": [
+        {
+          "name": "Listar todas las recetas",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Accept", "value": "application/fhir+json" }
+            ],
+            "url": {
+              "raw": "{{base_fhir}}/MedicationRequest?_count=100",
+              "host": ["{{base_fhir}}"],
+              "path": ["MedicationRequest"],
+              "query": [{ "key": "_count", "value": "100" }]
+            }
+          }
+        },
+        {
+          "name": "Recetas de un paciente",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Accept", "value": "application/fhir+json" }
+            ],
+            "url": {
+              "raw": "{{base_fhir}}/MedicationRequest?subject=Patient/{{patient_id}}",
+              "host": ["{{base_fhir}}"],
+              "path": ["MedicationRequest"],
+              "query": [
+                { "key": "subject", "value": "Patient/{{patient_id}}" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "📋 Antecedentes (FHIR Observations)",
+      "item": [
+        {
+          "name": "Antecedentes de un paciente",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Accept", "value": "application/fhir+json" }
+            ],
+            "url": {
+              "raw": "{{base_fhir}}/Observation?subject=Patient/{{patient_id}}&_count=100",
+              "host": ["{{base_fhir}}"],
+              "path": ["Observation"],
+              "query": [
+                { "key": "subject", "value": "Patient/{{patient_id}}" },
+                { "key": "_count", "value": "100" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "🗂️ EHRbase (openEHR)",
+      "item": [
+        {
+          "name": "Obtener EHR por ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Basic ZWhyYmFzZTplaHJiYXNl" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "url": "{{base_ehr}}/ehr/{{ehr_id}}",
+            "description": "Credenciales: ehrbase:ehrbase (Basic Auth ya incluido)"
+          }
+        },
+        {
+          "name": "Listar composiciones de un EHR",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Basic ZWhyYmFzZTplaHJiYXNl" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "url": "{{base_ehr}}/ehr/{{ehr_id}}/versioned_composition"
+          }
+        },
+        {
+          "name": "Query AQL — todos los EHRs",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Basic ZWhyYmFzZTplaHJiYXNl" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"q\": \"SELECT e/ehr_id/value, e/time_created/value FROM EHR e\"\n}"
+            },
+            "url": "{{base_ehr}}/query/aql",
+            "description": "Consulta AQL para ver todos los EHRs registrados"
+          }
+        },
+        {
+          "name": "Query AQL — composiciones de un paciente",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Basic ZWhyYmFzZTplaHJiYXNl" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"q\": \"SELECT c/uid/value, c/name/value FROM EHR e[ehr_id/value='{{ehr_id}}'] CONTAINS COMPOSITION c\"\n}"
+            },
+            "url": "{{base_ehr}}/query/aql"
+          }
+        }
+      ]
+    },
+    {
+      "name": "📅 Citas (FHIR)",
+      "item": [
+        {
+          "name": "Listar todas las citas",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Accept", "value": "application/fhir+json" }
+            ],
+            "url": {
+              "raw": "{{base_fhir}}/Appointment?_count=50&_sort=-date",
+              "host": ["{{base_fhir}}"],
+              "path": ["Appointment"],
+              "query": [
+                { "key": "_count", "value": "50" },
+                { "key": "_sort", "value": "-date" }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
