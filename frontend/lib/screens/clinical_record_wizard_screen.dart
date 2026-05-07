@@ -16,7 +16,8 @@ class ClinicalRecordWizardScreen extends StatefulWidget {
       _ClinicalRecordWizardScreenState();
 }
 
-class _ClinicalRecordWizardScreenState extends State<ClinicalRecordWizardScreen> {
+class _ClinicalRecordWizardScreenState
+    extends State<ClinicalRecordWizardScreen> {
   final FhirService _fhirService = FhirService();
 
   final TextEditingController _doctorController =
@@ -24,24 +25,24 @@ class _ClinicalRecordWizardScreenState extends State<ClinicalRecordWizardScreen>
   final TextEditingController _motivoController = TextEditingController();
   final TextEditingController _padecimientoController = TextEditingController();
   final TextEditingController _heredoController = TextEditingController();
-    final TextEditingController _viviendaController = TextEditingController();
+  final TextEditingController _viviendaController = TextEditingController();
   final TextEditingController _ginecoController = TextEditingController();
-    final TextEditingController _sistolicaController = TextEditingController();
-    final TextEditingController _diastolicaController = TextEditingController();
-    final TextEditingController _frecuenciaCardiacaController =
+  final TextEditingController _sistolicaController = TextEditingController();
+  final TextEditingController _diastolicaController = TextEditingController();
+  final TextEditingController _frecuenciaCardiacaController =
       TextEditingController();
-    final TextEditingController _frecuenciaRespiratoriaController =
+  final TextEditingController _frecuenciaRespiratoriaController =
       TextEditingController();
-    final TextEditingController _temperaturaController = TextEditingController();
-    final TextEditingController _pesoController = TextEditingController();
-    final TextEditingController _tallaController = TextEditingController();
+  final TextEditingController _temperaturaController = TextEditingController();
+  final TextEditingController _pesoController = TextEditingController();
+  final TextEditingController _tallaController = TextEditingController();
   final TextEditingController _exploracionController = TextEditingController();
   final TextEditingController _diagnosticoController = TextEditingController();
   final TextEditingController _planController = TextEditingController();
 
-    String _tabaquismo = 'No fuma';
-    String _alcoholismo = 'No consume alcohol';
-    String _tipoConsulta = 'Consulta general';
+  String _tabaquismo = 'No fuma';
+  String _alcoholismo = 'No consume alcohol';
+  String _tipoConsulta = 'Consulta general';
 
   int _stepIndex = 0;
   bool _isSaving = false;
@@ -95,7 +96,8 @@ class _ClinicalRecordWizardScreenState extends State<ClinicalRecordWizardScreen>
     final sistolica = _sistolicaController.text.trim();
     final diastolica = _diastolicaController.text.trim();
     if (sistolica.isNotEmpty || diastolica.isNotEmpty) {
-      sections.add('TA: ${sistolica.isEmpty ? '-' : sistolica}/${diastolica.isEmpty ? '-' : diastolica} mmHg');
+      sections.add(
+          'TA: ${sistolica.isEmpty ? '-' : sistolica}/${diastolica.isEmpty ? '-' : diastolica} mmHg');
     }
 
     if (_frecuenciaCardiacaController.text.trim().isNotEmpty) {
@@ -203,7 +205,8 @@ class _ClinicalRecordWizardScreenState extends State<ClinicalRecordWizardScreen>
                           style: TextStyle(fontWeight: FontWeight.bold)),
                       const SizedBox(height: 8),
                       Text('Nombre: ${widget.patient.fullName}'),
-                      Text('EHR ID: ${widget.patient.ehrId ?? 'Sin EHR asignado'}'),
+                      Text(
+                          'EHR ID: ${widget.patient.ehrId ?? 'Sin EHR asignado'}'),
                       Text('Fecha: ${DateTime.now().toIso8601String()}'),
                     ],
                   ),
@@ -300,7 +303,8 @@ class _ClinicalRecordWizardScreenState extends State<ClinicalRecordWizardScreen>
                 items: const [
                   DropdownMenuItem(value: 'No fuma', child: Text('No fuma')),
                   DropdownMenuItem(
-                      value: 'Fumador ocasional', child: Text('Fumador ocasional')),
+                      value: 'Fumador ocasional',
+                      child: Text('Fumador ocasional')),
                   DropdownMenuItem(
                       value: 'Fumador activo', child: Text('Fumador activo')),
                   DropdownMenuItem(
@@ -326,7 +330,8 @@ class _ClinicalRecordWizardScreenState extends State<ClinicalRecordWizardScreen>
                   DropdownMenuItem(
                       value: 'Consumo social', child: Text('Consumo social')),
                   DropdownMenuItem(
-                      value: 'Consumo frecuente', child: Text('Consumo frecuente')),
+                      value: 'Consumo frecuente',
+                      child: Text('Consumo frecuente')),
                   DropdownMenuItem(
                       value: 'Abstinente', child: Text('Abstinente')),
                 ],
@@ -633,7 +638,8 @@ class _ClinicalRecordWizardScreenState extends State<ClinicalRecordWizardScreen>
                   child: FilledButton.icon(
                     onPressed: _stepIndex == total - 1 ? null : _nextStep,
                     icon: const Icon(Icons.arrow_forward),
-                    label: Text(_stepIndex == total - 1 ? 'Finalizado' : 'Siguiente'),
+                    label: Text(
+                        _stepIndex == total - 1 ? 'Finalizado' : 'Siguiente'),
                   ),
                 ),
               ],

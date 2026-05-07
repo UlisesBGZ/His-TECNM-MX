@@ -7,7 +7,7 @@ import '../models/fhir_appointment.dart';
 import '../models/fhir_encounter.dart';
 import '../models/fhir_practitioner.dart';
 import '../models/fhir_medication_request.dart';
-import '../models/fhir_diagnostic_report.dart';
+import '../models/fhir_antecedent.dart';
 import '../models/user.dart';
 
 class FhirService {
@@ -441,7 +441,8 @@ class FhirService {
         );
 
         if (patientResponse.statusCode != 200) {
-          throw Exception('No fue posible desactivar el paciente (lectura fallida)');
+          throw Exception(
+              'No fue posible desactivar el paciente (lectura fallida)');
         }
 
         final patientJson =
@@ -454,11 +455,13 @@ class FhirService {
           body: json.encode(patientJson),
         );
 
-        if (updateResponse.statusCode == 200 || updateResponse.statusCode == 201) {
+        if (updateResponse.statusCode == 200 ||
+            updateResponse.statusCode == 201) {
           return;
         }
 
-        String detail = 'Error al desactivar paciente: ${updateResponse.statusCode}';
+        String detail =
+            'Error al desactivar paciente: ${updateResponse.statusCode}';
         try {
           final errorJson = json.decode(updateResponse.body);
           detail = errorJson['issue']?[0]?['diagnostics'] ?? detail;
@@ -777,6 +780,11 @@ class FhirService {
       final payload = FhirEncounter(
         status: encounter.status,
         reason: encounter.reason,
+        motivoConsulta: encounter.motivoConsulta,
+        padecimientoActual: encounter.padecimientoActual,
+        vitals: encounter.vitals,
+        diagnostico: encounter.diagnostico,
+        planTratamiento: encounter.planTratamiento,
         start: encounter.start,
         end: encounter.end,
         patientId: encounter.patientId,
@@ -818,6 +826,11 @@ class FhirService {
         id: encounter.id,
         status: encounter.status,
         reason: encounter.reason,
+        motivoConsulta: encounter.motivoConsulta,
+        padecimientoActual: encounter.padecimientoActual,
+        vitals: encounter.vitals,
+        diagnostico: encounter.diagnostico,
+        planTratamiento: encounter.planTratamiento,
         start: encounter.start,
         end: encounter.end,
         patientId: encounter.patientId,
@@ -953,7 +966,8 @@ class FhirService {
         if (patientId != null && medication.patientId != patientId) {
           return false;
         }
-        if (excludeMedicationId != null && medication.id == excludeMedicationId) {
+        if (excludeMedicationId != null &&
+            medication.id == excludeMedicationId) {
           return false;
         }
         return true;
@@ -1079,36 +1093,13 @@ class FhirService {
     }
   }
 
-  // ==================== DIAGNOSTIC REPORT METHODS ====================
+  // ==================== ANTECEDENT METHODS ====================
 
-  Future<List<FhirDiagnosticReport>> getDiagnosticReports({
-    int count = 50,
-    String? category,
-  }) async {
+  /// Obtiene todos los antecedentes de un paciente
+  Future<List<FhirAntecedent>> getAntecedentsByPatient(String patientId) async {
     try {
       final headers = await _getHeaders();
-      final user = await _getCurrentUser();
-
-      String url;
-      if (user != null && user.isAdmin) {
-        // Admin ve todos los reportes
-        url = '$baseUrl/DiagnosticReport?_count=$count';
-        if (category != null && category.isNotEmpty) {
-          url += '&category=$category';
-        }
-      } else {
-        // Usuarios normales solo ven sus reportes
-        final practitionerId = await _getCurrentPractitionerId();
-        if (practitionerId == null) {
-          return [];
-        }
-
-        url =
-            '$baseUrl/DiagnosticReport?performer=Practitioner/$practitionerId&_count=$count';
-        if (category != null && category.isNotEmpty) {
-          url += '&category=$category';
-        }
-      }
+      final url = '$baseUrl/Observation?subject=Patient/$patientId&_count=100';
 
       final response = await http.get(Uri.parse(url), headers: headers);
 
@@ -1116,148 +1107,123 @@ class FhirService {
         final bundle = json.decode(response.body);
         if (bundle['entry'] == null) return [];
 
-        final List<FhirDiagnosticReport> reports = [];
+        final List<FhirAntecedent> antecedents = [];
         for (var entry in bundle['entry']) {
-          if (entry['resource'] != null) {
-            final report = FhirDiagnosticReport.fromJson(entry['resource']);
+          final resource = entry['resource'];
+          if (resource == null) continue;
 
-            // Enriquecer con nombre del paciente
-            if (report.patientId != null) {
-              try {
-                final patient = await getPatient(report.patientId!);
-                reports.add(FhirDiagnosticReport(
-                  id: report.id,
-                  status: report.status,
-                  category: report.category,
-                  code: report.code,
-                  patientId: report.patientId,
-                  patientName: patient.fullName,
-                  practitionerId: report.practitionerId,
-                  practitionerName: report.practitionerName,
-                  effectiveDateTime: report.effectiveDateTime,
-                  issued: report.issued,
-                  conclusion: report.conclusion,
-                ));
-              } catch (e) {
-                reports.add(report);
-              }
-            } else {
-              reports.add(report);
+          try {
+            final tags = resource['meta']?['tag'] as List? ?? [];
+            final isAntecedent = tags.any((tag) => tag['code'] == 'antecedent');
+
+            if (isAntecedent) {
+              antecedents.add(FhirAntecedent.fromJson(resource));
             }
+          } catch (e) {
+            print('⚠️ Error parsing antecedent: $e');
           }
         }
 
-        return reports;
+        return antecedents;
       } else if (response.statusCode == 404) {
         return [];
       } else {
         throw Exception(
-            'Error al obtener reportes: ${response.statusCode} - ${response.body}');
+          'Error al obtener antecedentes: ${response.statusCode} - ${response.body}',
+        );
       }
     } catch (e) {
-      throw Exception('Error al obtener reportes: $e');
+      throw Exception('Error al obtener antecedentes: $e');
     }
   }
 
-  Future<FhirDiagnosticReport> getDiagnosticReport(String id) async {
+  /// Obtiene el antecedente más reciente de un tipo específico
+  Future<FhirAntecedent?> getLatestAntecedentByType(
+    String patientId,
+    AntecedentType type,
+  ) async {
     try {
-      final headers = await _getHeaders();
-      final response = await http
-          .get(Uri.parse('$baseUrl/DiagnosticReport/$id'), headers: headers);
+      final antecedents = await getAntecedentsByPatient(patientId);
 
-      if (response.statusCode == 200) {
-        final resource = json.decode(response.body);
-        return FhirDiagnosticReport.fromJson(resource);
-      } else {
-        throw Exception('Error al obtener reporte: ${response.statusCode}');
-      }
+      final filtered = antecedents.where((a) => a.type == type).toList();
+
+      if (filtered.isEmpty) return null;
+
+      // Ordenar por fecha de actualización (descendente) para obtener el más reciente
+      filtered.sort((a, b) =>
+          (b.updatedAt ?? b.createdAt).compareTo(a.updatedAt ?? a.createdAt));
+
+      return filtered.first;
     } catch (e) {
-      throw Exception('Error al obtener reporte: $e');
+      throw Exception('Error al obtener antecedente por tipo: $e');
     }
   }
 
-  Future<FhirDiagnosticReport> createDiagnosticReport(
-      FhirDiagnosticReport report) async {
+  /// Crea o actualiza un antecedente (garantiza no duplicados por tipo)
+  Future<FhirAntecedent> createOrUpdateAntecedent(
+    FhirAntecedent antecedent,
+  ) async {
     try {
-      final user = await _getCurrentUser();
-      if (user != null && user.isAdmin) {
-        throw Exception('Los administradores no pueden crear reportes');
-      }
-
       final practitionerId = await _getCurrentPractitionerId();
       if (practitionerId == null) {
         throw Exception('No se pudo obtener el practitioner del usuario');
       }
 
-      // Agregar practitioner al reporte
-      final reportWithPractitioner = FhirDiagnosticReport(
-        status: report.status,
-        category: report.category,
-        code: report.code,
-        patientId: report.patientId,
-        patientName: report.patientName,
-        practitionerId: practitionerId,
-        effectiveDateTime: report.effectiveDateTime,
-        issued: report.issued ?? DateTime.now(),
-        conclusion: report.conclusion,
+      // Verificar si existe un antecedente del mismo tipo
+      final existing = await getLatestAntecedentByType(
+        antecedent.patientId,
+        antecedent.type,
       );
 
+      final antecedentToSave = existing != null
+          ? antecedent.copyWith(
+              id: existing.id,
+              createdAt: existing.createdAt,
+              updatedAt: existing.updatedAt ?? DateTime.now(),
+              practitionerId: practitionerId,
+            )
+          : antecedent.copyWith(
+              createdAt: DateTime.now(),
+              updatedAt: DateTime.now(),
+              practitionerId: practitionerId,
+            );
+
       final headers = await _getHeaders();
-      final response = await http.post(
-        Uri.parse('$baseUrl/DiagnosticReport'),
-        headers: headers,
-        body: json.encode(reportWithPractitioner.toFhirJson()),
-      );
+      final method = existing != null ? 'PUT' : 'POST';
+      final url = existing != null
+          ? '$baseUrl/Observation/${existing.id}'
+          : '$baseUrl/Observation';
+
+      final response = await (method == 'PUT'
+          ? http.put(
+              Uri.parse(url),
+              headers: headers,
+              body: json.encode(antecedentToSave.toFhirJson()),
+            )
+          : http.post(
+              Uri.parse(url),
+              headers: headers,
+              body: json.encode(antecedentToSave.toFhirJson()),
+            ));
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final resource = json.decode(response.body);
-        return FhirDiagnosticReport.fromJson(resource);
+        return FhirAntecedent.fromJson(resource);
       } else {
         throw Exception(
-            'Error al crear reporte: ${response.statusCode} - ${response.body}');
+            'Error al guardar antecedente: ${response.statusCode} - ${response.body}');
       }
     } catch (e) {
-      throw Exception('Error al crear reporte: $e');
+      throw Exception('Error al guardar antecedente: $e');
     }
   }
 
-  Future<FhirDiagnosticReport> updateDiagnosticReport(
-      FhirDiagnosticReport report) async {
+  /// Elimina un antecedente
+  Future<void> deleteAntecedent(String id) async {
     try {
-      final user = await _getCurrentUser();
-      if (user != null && user.isAdmin) {
-        throw Exception('Los administradores no pueden actualizar reportes');
-      }
-
-      final headers = await _getHeaders();
-      final response = await http.put(
-        Uri.parse('$baseUrl/DiagnosticReport/${report.id}'),
-        headers: headers,
-        body: json.encode(report.toFhirJson()),
-      );
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final resource = json.decode(response.body);
-        return FhirDiagnosticReport.fromJson(resource);
-      } else {
-        throw Exception(
-            'Error al actualizar reporte: ${response.statusCode} - ${response.body}');
-      }
-    } catch (e) {
-      throw Exception('Error al actualizar reporte: $e');
-    }
-  }
-
-  Future<void> deleteDiagnosticReport(String id) async {
-    try {
-      final user = await _getCurrentUser();
-      if (user != null && user.isAdmin) {
-        throw Exception('Los administradores no pueden eliminar reportes');
-      }
-
       final headers = await _getHeaders();
       final response = await http.delete(
-        Uri.parse('$baseUrl/DiagnosticReport/$id'),
+        Uri.parse('$baseUrl/Observation/$id'),
         headers: headers,
       );
 
@@ -1265,10 +1231,60 @@ class FhirService {
           response.statusCode != 204 &&
           response.statusCode != 404) {
         throw Exception(
-            'Error al eliminar reporte: ${response.statusCode} - ${response.body}');
+            'Error al eliminar antecedente: ${response.statusCode} - ${response.body}');
       }
     } catch (e) {
-      throw Exception('Error al eliminar reporte: $e');
+      throw Exception('Error al eliminar antecedente: $e');
     }
+  }
+
+  // ⚠️ DEPRECATED: Métodos de DiagnosticReport removidos en Sprint 5
+  // Estos métodos existen solo para que el código compile
+  // Los archivos legacy (clinical_record_wizard_screen, report_list_screen, etc.)
+  // ya no se usan en el nuevo flujo (Pacientes → Vista Clínica → Antecedentes/Encuentros)
+
+  @Deprecated(
+      'DiagnosticReport removido. Usar ClinicalAntecedentsSection en su lugar')
+  Future<List<dynamic>> getDiagnosticReports({int count = 100}) async {
+    throw UnimplementedError(
+      'DiagnosticReport fue removido en Sprint 5. '
+      'Usa ClinicalAntecedentsSection en su lugar.',
+    );
+  }
+
+  @Deprecated(
+      'DiagnosticReport removido. Usar ClinicalAntecedentsSection en su lugar')
+  Future<dynamic> getDiagnosticReport(String id) async {
+    throw UnimplementedError(
+      'DiagnosticReport fue removido en Sprint 5. '
+      'Usa ClinicalAntecedentsSection en su lugar.',
+    );
+  }
+
+  @Deprecated(
+      'DiagnosticReport removido. Usar ClinicalAntecedentsSection en su lugar')
+  Future<dynamic> createDiagnosticReport(dynamic report) async {
+    throw UnimplementedError(
+      'DiagnosticReport fue removido en Sprint 5. '
+      'Usa ClinicalAntecedentsSection en su lugar.',
+    );
+  }
+
+  @Deprecated(
+      'DiagnosticReport removido. Usar ClinicalAntecedentsSection en su lugar')
+  Future<dynamic> updateDiagnosticReport(dynamic report) async {
+    throw UnimplementedError(
+      'DiagnosticReport fue removido en Sprint 5. '
+      'Usa ClinicalAntecedentsSection en su lugar.',
+    );
+  }
+
+  @Deprecated(
+      'DiagnosticReport removido. Usar ClinicalAntecedentsSection en su lugar')
+  Future<void> deleteDiagnosticReport(String id) async {
+    throw UnimplementedError(
+      'DiagnosticReport fue removido en Sprint 5. '
+      'Usa ClinicalAntecedentsSection en su lugar.',
+    );
   }
 }

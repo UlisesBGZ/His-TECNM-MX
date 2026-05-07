@@ -104,7 +104,8 @@ class _MedicationFormScreenState extends State<MedicationFormScreen> {
     final medicationParts = med.medication.split(' - ');
     if (medicationParts.length >= 2) {
       _medicationGenericController.text = medicationParts.first.trim();
-      _presentationController.text = medicationParts.sublist(1).join(' - ').trim();
+      _presentationController.text =
+          medicationParts.sublist(1).join(' - ').trim();
     } else {
       _medicationGenericController.text = med.medication;
     }
@@ -615,7 +616,8 @@ class _MedicationFormScreenState extends State<MedicationFormScreen> {
                         prefixIcon: Icon(Icons.info),
                       ),
                       items: const [
-                        DropdownMenuItem(value: 'draft', child: Text('Borrador')),
+                        DropdownMenuItem(
+                            value: 'draft', child: Text('Borrador')),
                         DropdownMenuItem(
                             value: 'active', child: Text('Activa')),
                         DropdownMenuItem(

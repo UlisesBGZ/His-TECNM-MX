@@ -327,12 +327,45 @@ class _EncounterListScreenState extends State<EncounterListScreen> {
                       Text(encounter.dateTimeDisplay),
                     ],
                   ),
-                  if (encounter.reason != null && encounter.reason!.isNotEmpty)
+                  if (encounter.motivoConsulta != null &&
+                      encounter.motivoConsulta!.isNotEmpty)
                     Padding(
                       padding: const EdgeInsets.only(top: 4),
-                      child: Text(encounter.reason!),
+                      child: Text(
+                        encounter.motivoConsulta!,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
-                  const SizedBox(height: 2),
+                  // Resumen de signos vitales
+                  if (encounter.vitals != null &&
+                      (encounter.vitals!.systolic != null ||
+                          encounter.vitals!.heartRate != null ||
+                          encounter.vitals!.temperature != null))
+                    Padding(
+                      padding: const EdgeInsets.only(top: 6),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.shade50,
+                          border: Border.all(color: Colors.blue.shade200),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          encounter.vitals!.summaryDisplay,
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontFamily: 'monospace',
+                            color: Colors.blue.shade900,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ),
+                  const SizedBox(height: 6),
                   Container(
                     padding:
                         const EdgeInsets.symmetric(horizontal: 8, vertical: 2),

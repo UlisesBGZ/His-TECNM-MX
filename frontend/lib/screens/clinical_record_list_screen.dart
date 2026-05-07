@@ -40,7 +40,7 @@ class _ClinicalRecordListScreenState extends State<ClinicalRecordListScreen> {
       final reports = await _fhirService.getDiagnosticReports(count: 300);
       final filtered = reports
           .where((report) => report.patientId == widget.patient.id)
-          .toList()
+          .toList().cast<FhirDiagnosticReport>()
         ..sort((a, b) {
           final aTime =
               (a.effectiveDateTime ?? a.issued)?.millisecondsSinceEpoch ?? 0;

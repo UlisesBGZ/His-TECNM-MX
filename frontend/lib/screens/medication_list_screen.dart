@@ -26,16 +26,14 @@ class _MedicationListScreenState extends State<MedicationListScreen> {
     final grouped = <String, List<FhirMedicationRequest>>{};
 
     for (final medication in medications) {
-      final key =
-          medication.groupIdentifier?.trim().isNotEmpty == true
-              ? medication.groupIdentifier!.trim()
-              : 'single-${medication.id ?? medication.hashCode}';
+      final key = medication.groupIdentifier?.trim().isNotEmpty == true
+          ? medication.groupIdentifier!.trim()
+          : 'single-${medication.id ?? medication.hashCode}';
       grouped.putIfAbsent(key, () => <FhirMedicationRequest>[]).add(medication);
     }
 
     final groups = grouped.entries.map((entry) {
-      final meds = [...entry.value]
-        ..sort((a, b) {
+      final meds = [...entry.value]..sort((a, b) {
           final aTime = a.authoredOn?.millisecondsSinceEpoch ?? 0;
           final bTime = b.authoredOn?.millisecondsSinceEpoch ?? 0;
           return bTime.compareTo(aTime);
@@ -427,7 +425,8 @@ class _MedicationListScreenState extends State<MedicationListScreen> {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
-                    color: _getStatusColor(medication.status).withValues(alpha: 0.2),
+                    color: _getStatusColor(medication.status)
+                        .withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(

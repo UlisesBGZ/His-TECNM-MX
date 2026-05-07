@@ -54,9 +54,10 @@ class _ReportFormScreenState extends State<ReportFormScreen> {
       } else if (widget.initialPatient != null) {
         final initialId = widget.initialPatient!.id;
         if (initialId != null) {
-          _selectedPatient = _patients.where((p) => p.id == initialId).isNotEmpty
-              ? _patients.firstWhere((p) => p.id == initialId)
-              : widget.initialPatient;
+          _selectedPatient =
+              _patients.where((p) => p.id == initialId).isNotEmpty
+                  ? _patients.firstWhere((p) => p.id == initialId)
+                  : widget.initialPatient;
         } else {
           _selectedPatient = widget.initialPatient;
         }

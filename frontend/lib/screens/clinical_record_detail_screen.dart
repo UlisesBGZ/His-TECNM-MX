@@ -97,18 +97,21 @@ class ClinicalRecordDetailScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final date = report.effectiveDateTime ?? report.issued;
     final fullConclusion =
-      report.conclusion?.trim().isNotEmpty == true ? report.conclusion! : '';
+        report.conclusion?.trim().isNotEmpty == true ? report.conclusion! : '';
     final tipoConsulta =
-      _extractSectionValue('Tipo de consulta', fullConclusion) ?? 'No registrado';
-    final motivo = _extractSectionValue('Motivo', fullConclusion) ?? 'No registrado';
+        _extractSectionValue('Tipo de consulta', fullConclusion) ??
+            'No registrado';
+    final motivo =
+        _extractSectionValue('Motivo', fullConclusion) ?? 'No registrado';
     final padecimiento =
-      _extractSectionValue('Padecimiento actual', fullConclusion) ?? 'No registrado';
-    final heredo = _extractSectionValue(
-        'Antecedentes heredofamiliares', fullConclusion) ??
-      'No registrado';
-    final signos =
-      _extractSectionValue('Signos vitales', fullConclusion) ?? '';
-    final plan = _extractSectionValue('Plan', fullConclusion) ?? 'Sin descripción';
+        _extractSectionValue('Padecimiento actual', fullConclusion) ??
+            'No registrado';
+    final heredo =
+        _extractSectionValue('Antecedentes heredofamiliares', fullConclusion) ??
+            'No registrado';
+    final signos = _extractSectionValue('Signos vitales', fullConclusion) ?? '';
+    final plan =
+        _extractSectionValue('Plan', fullConclusion) ?? 'Sin descripción';
 
     return Scaffold(
       appBar: AppBar(

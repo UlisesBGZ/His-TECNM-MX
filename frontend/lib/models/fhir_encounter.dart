@@ -1,7 +1,99 @@
+import 'dart:convert' show jsonDecode, jsonEncode;
+import 'package:intl/intl.dart';
+
+/// Signos vitales del encuentro
+class VitalsData {
+  final double? weight; // kg
+  final double? height; // cm
+  final double? heartRate; // lpm
+  final double? respiratoryRate; // rpm
+  final double? systolic; // mmHg
+  final double? diastolic; // mmHg
+  final double? temperature; // °C
+
+  VitalsData({
+    this.weight,
+    this.height,
+    this.heartRate,
+    this.respiratoryRate,
+    this.systolic,
+    this.diastolic,
+    this.temperature,
+  });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'weight': weight,
+      'height': height,
+      'heartRate': heartRate,
+      'respiratoryRate': respiratoryRate,
+      'systolic': systolic,
+      'diastolic': diastolic,
+      'temperature': temperature,
+    };
+  }
+
+  factory VitalsData.fromJson(Map<String, dynamic> json) {
+    return VitalsData(
+      weight: (json['weight'] as num?)?.toDouble(),
+      height: (json['height'] as num?)?.toDouble(),
+      heartRate: (json['heartRate'] as num?)?.toDouble(),
+      respiratoryRate: (json['respiratoryRate'] as num?)?.toDouble(),
+      systolic: (json['systolic'] as num?)?.toDouble(),
+      diastolic: (json['diastolic'] as num?)?.toDouble(),
+      temperature: (json['temperature'] as num?)?.toDouble(),
+    );
+  }
+
+  VitalsData copyWith({
+    double? weight,
+    double? height,
+    double? heartRate,
+    double? respiratoryRate,
+    double? systolic,
+    double? diastolic,
+    double? temperature,
+  }) {
+    return VitalsData(
+      weight: weight ?? this.weight,
+      height: height ?? this.height,
+      heartRate: heartRate ?? this.heartRate,
+      respiratoryRate: respiratoryRate ?? this.respiratoryRate,
+      systolic: systolic ?? this.systolic,
+      diastolic: diastolic ?? this.diastolic,
+      temperature: temperature ?? this.temperature,
+    );
+  }
+
+  /// Retorna un resumen de vitales para mostrar en cards
+  String get summaryDisplay {
+    final parts = <String>[];
+    if (systolic != null && diastolic != null) {
+      parts.add(
+          'TA: ${systolic!.toStringAsFixed(0)}/${diastolic!.toStringAsFixed(0)}');
+    }
+    if (heartRate != null) {
+      parts.add('FC: ${heartRate!.toStringAsFixed(0)}');
+    }
+    if (temperature != null) {
+      parts.add('T: ${temperature!.toStringAsFixed(1)}°C');
+    }
+    if (respiratoryRate != null) {
+      parts.add('FR: ${respiratoryRate!.toStringAsFixed(0)}');
+    }
+    return parts.join(' | ');
+  }
+}
+
 class FhirEncounter {
   final String? id;
   final String status; // pending | active | finalized
   final String? reason;
+  final String? motivoConsulta; // Motivo de la consulta
+  final String? padecimientoActual; // Padecimiento actual / Enfermedad actual
+  final VitalsData? vitals; // Signos vitales
+  final String? diagnostico; // Diagnóstico
+  final String? planTratamiento; // Plan de tratamiento
   final DateTime? start;
   final DateTime? end;
   final String? patientId;
@@ -13,6 +105,11 @@ class FhirEncounter {
     this.id,
     required this.status,
     this.reason,
+    this.motivoConsulta,
+    this.padecimientoActual,
+    this.vitals,
+    this.diagnostico,
+    this.planTratamiento,
     this.start,
     this.end,
     this.patientId,
@@ -82,10 +179,47 @@ class FhirEncounter {
       }
     }
 
+    // Extractos de extensiones personalizadas
+    String? motivoConsulta;
+    String? padecimientoActual;
+    VitalsData? vitals;
+    String? diagnostico;
+    String? planTratamiento;
+
+    if (json['extension'] != null && json['extension'] is List) {
+      for (var ext in json['extension'] as List) {
+        if (ext is Map<String, dynamic>) {
+          final url = ext['url'];
+          if (url == 'http://custom.system/motivo-consulta') {
+            motivoConsulta = ext['valueString'];
+          } else if (url == 'http://custom.system/padecimiento-actual') {
+            padecimientoActual = ext['valueString'];
+          } else if (url == 'http://custom.system/signos-vitales' &&
+              ext['valueString'] != null) {
+            try {
+              final vitalsJson = jsonDecode(ext['valueString']);
+              vitals = VitalsData.fromJson(vitalsJson);
+            } catch (e) {
+              // Ignorar si hay error al parsear
+            }
+          } else if (url == 'http://custom.system/diagnostico') {
+            diagnostico = ext['valueString'];
+          } else if (url == 'http://custom.system/plan-tratamiento') {
+            planTratamiento = ext['valueString'];
+          }
+        }
+      }
+    }
+
     return FhirEncounter(
       id: json['id']?.toString(),
       status: _fromFhirStatus(json['status']?.toString()),
       reason: reason,
+      motivoConsulta: motivoConsulta,
+      padecimientoActual: padecimientoActual,
+      vitals: vitals,
+      diagnostico: diagnostico,
+      planTratamiento: planTratamiento,
       start: startDate,
       end: endDate,
       patientId: patientId,
@@ -143,7 +277,84 @@ class FhirEncounter {
       ];
     }
 
+    // Agregar extensiones personalizadas
+    final extensions = <Map<String, dynamic>>[];
+
+    if (motivoConsulta != null && motivoConsulta!.trim().isNotEmpty) {
+      extensions.add({
+        'url': 'http://custom.system/motivo-consulta',
+        'valueString': motivoConsulta!.trim(),
+      });
+    }
+
+    if (padecimientoActual != null && padecimientoActual!.trim().isNotEmpty) {
+      extensions.add({
+        'url': 'http://custom.system/padecimiento-actual',
+        'valueString': padecimientoActual!.trim(),
+      });
+    }
+
+    if (vitals != null) {
+      extensions.add({
+        'url': 'http://custom.system/signos-vitales',
+        'valueString': jsonEncode(vitals!.toJson()),
+      });
+    }
+
+    if (diagnostico != null && diagnostico!.trim().isNotEmpty) {
+      extensions.add({
+        'url': 'http://custom.system/diagnostico',
+        'valueString': diagnostico!.trim(),
+      });
+    }
+
+    if (planTratamiento != null && planTratamiento!.trim().isNotEmpty) {
+      extensions.add({
+        'url': 'http://custom.system/plan-tratamiento',
+        'valueString': planTratamiento!.trim(),
+      });
+    }
+
+    if (extensions.isNotEmpty) {
+      data['extension'] = extensions;
+    }
+
     return data;
+  }
+
+  /// Copia con cambios específicos
+  FhirEncounter copyWith({
+    String? id,
+    String? status,
+    String? reason,
+    String? motivoConsulta,
+    String? padecimientoActual,
+    VitalsData? vitals,
+    String? diagnostico,
+    String? planTratamiento,
+    DateTime? start,
+    DateTime? end,
+    String? patientId,
+    String? patientName,
+    String? practitionerId,
+    String? practitionerName,
+  }) {
+    return FhirEncounter(
+      id: id ?? this.id,
+      status: status ?? this.status,
+      reason: reason ?? this.reason,
+      motivoConsulta: motivoConsulta ?? this.motivoConsulta,
+      padecimientoActual: padecimientoActual ?? this.padecimientoActual,
+      vitals: vitals ?? this.vitals,
+      diagnostico: diagnostico ?? this.diagnostico,
+      planTratamiento: planTratamiento ?? this.planTratamiento,
+      start: start ?? this.start,
+      end: end ?? this.end,
+      patientId: patientId ?? this.patientId,
+      patientName: patientName ?? this.patientName,
+      practitionerId: practitionerId ?? this.practitionerId,
+      practitionerName: practitionerName ?? this.practitionerName,
+    );
   }
 
   static String _toFhirStatus(String status) {
@@ -187,11 +398,18 @@ class FhirEncounter {
 
   String get dateTimeDisplay {
     if (start == null) return 'Sin fecha';
-    final day = start!.day.toString().padLeft(2, '0');
-    final month = start!.month.toString().padLeft(2, '0');
-    final year = start!.year;
-    final hour = start!.hour.toString().padLeft(2, '0');
-    final minute = start!.minute.toString().padLeft(2, '0');
-    return '$day/$month/$year $hour:$minute';
+    try {
+      final datePart = DateFormat('dd MMM yyyy').format(start!);
+      final hour = start!.hour.toString().padLeft(2, '0');
+      final minute = start!.minute.toString().padLeft(2, '0');
+      return '$datePart $hour:$minute';
+    } catch (e) {
+      final day = start!.day.toString().padLeft(2, '0');
+      final month = start!.month.toString().padLeft(2, '0');
+      final year = start!.year;
+      final hour = start!.hour.toString().padLeft(2, '0');
+      final minute = start!.minute.toString().padLeft(2, '0');
+      return '$day/$month/$year $hour:$minute';
+    }
   }
 }

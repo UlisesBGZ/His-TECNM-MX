@@ -6,7 +6,6 @@ import 'user_management_screen.dart';
 import 'patient_list_screen.dart';
 import 'encounter_list_screen.dart';
 import 'medication_list_screen.dart';
-import 'report_list_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -29,7 +28,6 @@ class _HomeScreenState extends State<HomeScreen>
       duration: const Duration(milliseconds: 1500),
     );
 
-    // Create staggered animations for each card
     _fadeAnimations = List.generate(6, (index) {
       final start = index * 0.1;
       final end = start + 0.5;
@@ -68,589 +66,698 @@ class _HomeScreenState extends State<HomeScreen>
   Widget build(BuildContext context) {
     final authProvider = context.watch<AuthProvider>();
     final user = authProvider.user;
+    final primary = Theme.of(context).primaryColor;
 
     return Scaffold(
+      backgroundColor: const Color(0xFFF4F6FB),
       appBar: AppBar(
-        title: const Text('Sistema Hospitalario'),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        scrolledUnderElevation: 1,
+        shadowColor: Colors.black12,
+        centerTitle: true,
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Text(
+              user?.isAdmin == true ? 'Panel Administrativo' : 'La Clemencia',
+              style: const TextStyle(
+                fontSize: 19,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF1A1F36),
+              ),
+            ),
+            Text(
+              'Sistema de Gestión Clínica',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey[500],
+                fontWeight: FontWeight.w400,
+              ),
+            ),
+          ],
+        ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () async {
-              await authProvider.logout();
-              if (context.mounted) {
-                Navigator.of(context).pushReplacement(
-                  MaterialPageRoute(builder: (_) => const LoginScreen()),
-                );
-              }
+            icon: const Icon(Icons.notifications_outlined, color: Color(0xFF1A1F36)),
+            tooltip: 'Notificaciones',
+            onPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Sin notificaciones nuevas')),
+              );
             },
+          ),
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: Tooltip(
+              message: 'Cerrar sesión',
+              child: InkWell(
+                onTap: () async {
+                  await authProvider.logout();
+                  if (context.mounted) {
+                    Navigator.of(context).pushReplacement(
+                      MaterialPageRoute(builder: (_) => const LoginScreen()),
+                    );
+                  }
+                },
+                borderRadius: BorderRadius.circular(10),
+                child: Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEF4444).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                        color: const Color(0xFFEF4444).withValues(alpha: 0.2)),
+                  ),
+                  child: const Icon(Icons.logout_outlined,
+                      size: 18, color: Color(0xFFEF4444)),
+                ),
+              ),
+            ),
           ),
         ],
       ),
       body: user == null
           ? const Center(child: CircularProgressIndicator())
-          : Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.grey[50]!,
-                    Colors.white,
-                  ],
-                ),
-              ),
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(20.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // User Info Card - Mejorado
-                    FadeTransition(
-                      opacity: _fadeAnimations[0],
-                      child: ScaleTransition(
-                        scale: Tween<double>(begin: 0.9, end: 1.0).animate(
-                          CurvedAnimation(
-                            parent: _animationController,
-                            curve: const Interval(0.0, 0.5,
-                                curve: Curves.easeOutBack),
-                          ),
-                        ),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: user.isAdmin
-                                  ? [
-                                      Colors.orange[400]!,
-                                      Colors.deepOrange[300]!
-                                    ]
-                                  : [
-                                      Theme.of(context).primaryColor,
-                                      Theme.of(context)
-                                          .primaryColor
-                                          .withValues(alpha: 0.7)
-                                    ],
-                            ),
-                            borderRadius: BorderRadius.circular(20),
-                            boxShadow: [
-                              BoxShadow(
-                                color: (user.isAdmin
-                                        ? Colors.orange
-                                        : Theme.of(context).primaryColor)
-                                    .withValues(alpha: 0.3),
-                                blurRadius: 15,
-                                offset: const Offset(0, 8),
-                              ),
-                            ],
-                          ),
-                          child: Card(
-                            elevation: 0,
-                            color: Colors.white,
-                            margin: const EdgeInsets.all(3),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(18),
-                            ),
-                            child: Padding(
-                              padding: const EdgeInsets.all(20.0),
-                              child: Column(
-                                children: [
-                                  Container(
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: (user.isAdmin
-                                                  ? Colors.orange
-                                                  : Theme.of(context)
-                                                      .primaryColor)
-                                              .withValues(alpha: 0.4),
-                                          blurRadius: 12,
-                                          spreadRadius: 2,
-                                        ),
-                                      ],
-                                    ),
-                                    child: CircleAvatar(
-                                      radius: 45,
-                                      backgroundColor: user.isAdmin
-                                          ? Colors.orange
-                                          : Theme.of(context).primaryColor,
-                                      child: Text(
-                                        user.username[0].toUpperCase(),
-                                        style: const TextStyle(
-                                          fontSize: 36,
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 16),
-                                  Text(
-                                    user.fullName,
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .headlineSmall
-                                        ?.copyWith(
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    '@${user.username}',
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .bodyLarge
-                                        ?.copyWith(
-                                          color: Colors.grey[600],
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                  ),
-                                  const SizedBox(height: 12),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 12, vertical: 6),
-                                    decoration: BoxDecoration(
-                                      color: Colors.grey[50],
-                                      borderRadius: BorderRadius.circular(8),
-                                      border:
-                                          Border.all(color: Colors.grey[200]!),
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(Icons.email,
-                                            size: 16, color: Colors.grey[700]),
-                                        const SizedBox(width: 6),
-                                        Text(
-                                          user.email,
-                                          style: TextStyle(
-                                            color: Colors.grey[700],
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  const SizedBox(height: 16),
-                                  Wrap(
-                                    spacing: 8,
-                                    runSpacing: 8,
-                                    alignment: WrapAlignment.center,
-                                    children: user.roles.map((role) {
-                                      final isAdmin = role == 'ROLE_ADMIN' ||
-                                          role == 'ADMIN';
-                                      final isDoctor = role == 'ROLE_DOCTOR' ||
-                                          role == 'DOCTOR';
+          : LayoutBuilder(
+              builder: (context, constraints) {
+                final w = constraints.maxWidth;
+                final isTablet = w >= 600;
+                final isDesktop = w >= 1024;
+                final hPadding = isDesktop ? 48.0 : isTablet ? 32.0 : 20.0;
 
-                                      Color color1, color2;
-                                      IconData icon;
-
-                                      if (isAdmin) {
-                                        color1 = Colors.orange;
-                                        color2 = Colors.deepOrange;
-                                        icon = Icons.admin_panel_settings;
-                                      } else if (isDoctor) {
-                                        color1 = Colors.blue[600]!;
-                                        color2 = Colors.blue[400]!;
-                                        icon = Icons.local_hospital;
-                                      } else {
-                                        color1 = Colors.green[600]!;
-                                        color2 = Colors.green[400]!;
-                                        icon = Icons.person;
-                                      }
-
-                                      return Container(
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 12, vertical: 6),
-                                        decoration: BoxDecoration(
-                                          gradient: LinearGradient(
-                                            colors: [color1, color2],
-                                          ),
-                                          borderRadius:
-                                              BorderRadius.circular(20),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: color1.withValues(alpha: 0.3),
-                                              blurRadius: 4,
-                                              offset: const Offset(0, 2),
-                                            ),
-                                          ],
-                                        ),
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Icon(icon,
-                                                size: 16, color: Colors.white),
-                                            const SizedBox(width: 6),
-                                            Text(
-                                              role.replaceAll('ROLE_', ''),
-                                              style: const TextStyle(
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.bold,
-                                                color: Colors.white,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      );
-                                    }).toList(),
-                                  ),
-                                ],
+                return SingleChildScrollView(
+                  padding: EdgeInsets.symmetric(
+                      horizontal: hPadding, vertical: 24),
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 900),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          // ── User card ────────────────────────────────────
+                          FadeTransition(
+                            opacity: _fadeAnimations[0],
+                            child: SlideTransition(
+                              position: _slideAnimations[0],
+                              child: _buildUserCard(
+                                username: user.username,
+                                fullName: user.fullName,
+                                email: user.email,
+                                isAdmin: user.isAdmin,
+                                isTablet: isTablet,
                               ),
                             ),
                           ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 32),
+                          const SizedBox(height: 28),
 
-                    // Features Grid
-                    FadeTransition(
-                      opacity: _fadeAnimations[1],
-                      child: Text(
-                        '🏥 Funcionalidades',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 24,
+                          // ── Section header ───────────────────────────────
+                          FadeTransition(
+                            opacity: _fadeAnimations[1],
+                            child: _buildSectionHeader(
+                              title: user.isAdmin
+                                  ? 'Módulos de Administración'
+                                  : 'Módulos Clínicos',
+                              icon: user.isAdmin
+                                  ? Icons.tune
+                                  : Icons.apps_outlined,
+                              primary: primary,
                             ),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
+                          ),
+                          const SizedBox(height: 12),
 
-                    GridView.count(
-                      crossAxisCount: 2,
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      mainAxisSpacing: 16,
-                      crossAxisSpacing: 16,
-                      childAspectRatio: 0.78,
-                      children: [
-                        // Pestañas solo para doctores (NO para admins)
-                        if (!user.isAdmin) ...[
-                          _buildFeatureCard(
-                            context,
-                            icon: Icons.people,
-                            title: 'Pacientes',
-                            subtitle: 'Gestión de pacientes',
-                            color: Colors.blue,
-                            animationIndex: 0,
-                            onTap: () {
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) => const PatientListScreen(),
-                                ),
-                              );
-                            },
+                          // ── Module cards (responsive) ────────────────────
+                          _buildModulesSection(
+                              context, user, isTablet, isDesktop),
+
+                          const SizedBox(height: 28),
+
+                          // ── System info ──────────────────────────────────
+                          FadeTransition(
+                            opacity: _fadeAnimations[5],
+                            child: SlideTransition(
+                              position: _slideAnimations[5],
+                              child: _buildSystemInfoCard(isTablet: isTablet),
+                            ),
                           ),
-                          _buildFeatureCard(
-                            context,
-                            icon: Icons.medical_services,
-                            title: 'Encuentros',
-                            subtitle: 'Gestion de encuentros',
-                            color: Colors.green,
-                            animationIndex: 1,
-                            onTap: () {
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) => const EncounterListScreen(),
-                                ),
-                              );
-                            },
-                          ),
-                          _buildFeatureCard(
-                            context,
-                            icon: Icons.medication,
-                            title: 'Recetas',
-                            subtitle: 'Recetas médicas',
-                            color: Colors.orange,
-                            animationIndex: 2,
-                            onTap: () {
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) => const MedicationListScreen(),
-                                ),
-                              );
-                            },
-                          ),
-                          _buildFeatureCard(
-                            context,
-                            icon: Icons.analytics,
-                            title: 'Reportes',
-                            subtitle: 'Reportes médicos',
-                            color: Colors.purple,
-                            animationIndex: 3,
-                            onTap: () {
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) => const ReportListScreen(),
-                                ),
-                              );
-                            },
-                          ),
+                          const SizedBox(height: 20),
                         ],
-                        // Pestañas solo para admins
-                        if (user.isAdmin) ...[
-                          _buildFeatureCard(
-                            context,
-                            icon: Icons.settings,
-                            title: 'Configuración',
-                            subtitle: 'Admin settings',
-                            color: Colors.red,
-                            animationIndex: 0,
-                          ),
-                          _buildFeatureCard(
-                            context,
-                            icon: Icons.group,
-                            title: 'Usuarios',
-                            subtitle: 'Gestión de usuarios',
-                            color: Colors.teal,
-                            animationIndex: 1,
-                            onTap: () {
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) => const UserManagementScreen(),
-                                ),
-                              );
-                            },
-                          ),
-                        ],
-                      ],
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    // Info Card - Mejorado
-                    FadeTransition(
-                      opacity: _fadeAnimations[5],
-                      child: SlideTransition(
-                        position: _slideAnimations[5],
-                        child: Container(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [Colors.blue[600]!, Colors.blue[400]!],
-                            ),
-                            borderRadius: BorderRadius.circular(16),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.blue.withValues(alpha: 0.3),
-                                blurRadius: 12,
-                                offset: const Offset(0, 6),
-                              ),
-                            ],
-                          ),
-                          child: Card(
-                            elevation: 0,
-                            color: Colors.white,
-                            margin: const EdgeInsets.all(2.5),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                            child: Padding(
-                              padding: const EdgeInsets.all(20.0),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Container(
-                                        padding: const EdgeInsets.all(10),
-                                        decoration: BoxDecoration(
-                                          gradient: LinearGradient(
-                                            colors: [
-                                              Colors.blue[600]!,
-                                              Colors.blue[400]!
-                                            ],
-                                          ),
-                                          borderRadius:
-                                              BorderRadius.circular(12),
-                                        ),
-                                        child: const Icon(
-                                          Icons.info_outline,
-                                          color: Colors.white,
-                                          size: 24,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      const Text(
-                                        'Información del Sistema',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 16,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 20),
-                                  _buildInfoRow('🌐 Servidor FHIR', 'Conectado',
-                                      Colors.green),
-                                  _buildInfoRow(
-                                      '📦 Versión', '1.0.0', Colors.blue),
-                                  _buildInfoRow('🗄️ Base de Datos',
-                                      'PostgreSQL', Colors.purple),
-                                  _buildInfoRow('⚕️ Estándar', 'HL7 FHIR R4',
-                                      Colors.orange),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
                       ),
                     ),
-                    const SizedBox(height: 20),
-                  ],
-                ),
-              ),
+                  ),
+                );
+              },
             ),
     );
   }
 
-  Widget _buildFeatureCard(
-    BuildContext context, {
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required Color color,
-    required int animationIndex,
-    VoidCallback? onTap,
-  }) {
-    final fadeAnimation = animationIndex < _fadeAnimations.length
-        ? _fadeAnimations[animationIndex]
+  // ── Modules section ──────────────────────────────────────────────────────
+
+  Widget _buildModulesSection(
+      BuildContext context, user, bool isTablet, bool isDesktop) {
+    if (!user.isAdmin) {
+      final modules = [
+        _ModuleInfo(
+          icon: Icons.groups_2_outlined,
+          title: 'Pacientes',
+          subtitle: 'Registro de pacientes',
+          color: const Color(0xFF3B82F6),
+          animIndex: 2,
+          onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const PatientListScreen())),
+        ),
+        _ModuleInfo(
+          icon: Icons.medical_services_outlined,
+          title: 'Encuentros',
+          subtitle: 'Historial de consultas',
+          color: const Color(0xFF10B981),
+          animIndex: 3,
+          onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const EncounterListScreen())),
+        ),
+        _ModuleInfo(
+          icon: Icons.vaccines_outlined,
+          title: 'Recetas',
+          subtitle: 'Administración de medicamentos',
+          color: const Color(0xFFF59E0B),
+          animIndex: 4,
+          onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const MedicationListScreen())),
+        ),
+      ];
+
+      if (isDesktop) {
+        return _buildCardRow(context, modules);
+      } else if (isTablet) {
+        return Column(
+          children: [
+            _buildCardRow(context, [modules[0], modules[1]]),
+            const SizedBox(height: 10),
+            _buildAnimatedCard(context, modules[2]),
+          ],
+        );
+      } else {
+        return _buildCardColumn(context, modules);
+      }
+    } else {
+      final modules = [
+        _ModuleInfo(
+          icon: Icons.admin_panel_settings_outlined,
+          title: 'Configuración',
+          subtitle: 'Ajustes del sistema',
+          color: const Color(0xFFEF4444),
+          animIndex: 2,
+          onTap: () => ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+                content: Text('Función "Configuración" en desarrollo')),
+          ),
+        ),
+        _ModuleInfo(
+          icon: Icons.manage_accounts_outlined,
+          title: 'Usuarios',
+          subtitle: 'Gestión de cuentas y permisos',
+          color: const Color(0xFF14B8A6),
+          animIndex: 3,
+          onTap: () => Navigator.of(context).push(MaterialPageRoute(
+              builder: (_) => const UserManagementScreen())),
+        ),
+      ];
+
+      return isTablet || isDesktop
+          ? _buildCardRow(context, modules)
+          : _buildCardColumn(context, modules);
+    }
+  }
+
+  Widget _buildCardRow(BuildContext context, List<_ModuleInfo> modules) {
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (int i = 0; i < modules.length; i++) ...[
+            if (i > 0) const SizedBox(width: 10),
+            Expanded(child: _buildAnimatedCard(context, modules[i])),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCardColumn(BuildContext context, List<_ModuleInfo> modules) {
+    return Column(
+      children: [
+        for (int i = 0; i < modules.length; i++) ...[
+          if (i > 0) const SizedBox(height: 10),
+          _buildAnimatedCard(context, modules[i]),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildAnimatedCard(BuildContext context, _ModuleInfo info) {
+    final fade = info.animIndex < _fadeAnimations.length
+        ? _fadeAnimations[info.animIndex]
         : _fadeAnimations.last;
-    final slideAnimation = animationIndex < _slideAnimations.length
-        ? _slideAnimations[animationIndex]
+    final slide = info.animIndex < _slideAnimations.length
+        ? _slideAnimations[info.animIndex]
         : _slideAnimations.last;
-
     return FadeTransition(
-      opacity: fadeAnimation,
+      opacity: fade,
       child: SlideTransition(
-        position: slideAnimation,
-        child: Material(
-          elevation: 0,
-          borderRadius: BorderRadius.circular(16),
-          child: InkWell(
-            onTap: onTap ??
-                () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Función "$title" en desarrollo')),
-                  );
-                },
-            borderRadius: BorderRadius.circular(16),
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    color.withValues(alpha: 0.7),
-                    color,
-                  ],
-                ),
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: color.withValues(alpha: 0.3),
-                    blurRadius: 8,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(14.0),
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    final iconSize = constraints.maxHeight < 210 ? 34.0 : 40.0;
-                    final titleSize = constraints.maxHeight < 210 ? 15.0 : 17.0;
-                    final subtitleSize =
-                        constraints.maxHeight < 210 ? 12.0 : 13.0;
+        position: slide,
+        child: _buildModuleCard(context, info: info),
+      ),
+    );
+  }
 
-                    return Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(14),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.9),
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.1),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: Icon(icon, size: iconSize, color: color),
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: titleSize,
-                            color: Colors.white,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          subtitle,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: subtitleSize,
-                            color: Colors.white.withValues(alpha: 0.9),
-                            fontWeight: FontWeight.w500,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
-                    );
-                  },
+  // ── Widgets ──────────────────────────────────────────────────────────────
+
+  Widget _buildUserCard({
+    required String username,
+    required String fullName,
+    required String email,
+    required bool isAdmin,
+    required bool isTablet,
+  }) {
+    final gradient = isAdmin
+        ? const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFFF97316), Color(0xFFFB923C)],
+          )
+        : const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFF3B5BDB), Color(0xFF5C7CFA)],
+          );
+    final shadowColor =
+        isAdmin ? const Color(0xFFF97316) : const Color(0xFF3B5BDB);
+    final avatarSize = isTablet ? 68.0 : 56.0;
+    final nameFontSize = isTablet ? 20.0 : 18.0;
+
+    return Container(
+      padding: EdgeInsets.all(isTablet ? 24 : 20),
+      decoration: BoxDecoration(
+        gradient: gradient,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: shadowColor.withValues(alpha: 0.32),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: avatarSize,
+            height: avatarSize,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.2),
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.35),
+                width: 2,
+              ),
+            ),
+            child: Center(
+              child: Text(
+                username[0].toUpperCase(),
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: isTablet ? 28 : 24,
+                  fontWeight: FontWeight.w800,
                 ),
               ),
             ),
+          ),
+          SizedBox(width: isTablet ? 20 : 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  fullName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: nameFontSize,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -0.3,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  email,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.8),
+                    fontSize: isTablet ? 13 : 12,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.18),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.3)),
+                  ),
+                  child: Text(
+                    isAdmin ? 'Administrador' : 'Médico',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.4,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader({
+    required String title,
+    required IconData icon,
+    required Color primary,
+  }) {
+    return Row(
+      children: [
+        Container(
+          width: 4,
+          height: 22,
+          decoration: BoxDecoration(
+            color: primary,
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Icon(icon, color: primary, size: 20),
+        const SizedBox(width: 8),
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.w700,
+            color: Color(0xFF1A1F36),
+            letterSpacing: -0.3,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildModuleCard(BuildContext context, {required _ModuleInfo info}) {
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        onTap: info.onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.grey.shade100),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 50,
+                height: 50,
+                decoration: BoxDecoration(
+                  color: info.color.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(info.icon, color: info.color, size: 26),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      info.title,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF1A1F36),
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      info.subtitle,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[500],
+                        fontWeight: FontWeight.w400,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(Icons.chevron_right_rounded,
+                  color: Colors.grey[300], size: 24),
+            ],
           ),
         ),
       ),
     );
   }
 
-  Widget _buildInfoRow(String label, String value, Color accentColor) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 14.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  Widget _buildSystemInfoCard({required bool isTablet}) {
+    const items = [
+      _StatusItem(
+        label: 'Servidor FHIR',
+        value: 'Conectado',
+        color: Color(0xFF10B981),
+        icon: Icons.cloud_done_outlined,
+      ),
+      _StatusItem(
+        label: 'Versión',
+        value: '1.0.0',
+        color: Color(0xFF3B5BDB),
+        icon: Icons.info_outline_rounded,
+      ),
+      _StatusItem(
+        label: 'Base de Datos',
+        value: 'PostgreSQL',
+        color: Color(0xFF8B5CF6),
+        icon: Icons.storage_outlined,
+      ),
+      _StatusItem(
+        label: 'Estándar',
+        value: 'HL7 FHIR R4',
+        color: Color(0xFFF59E0B),
+        icon: Icons.verified_outlined,
+      ),
+    ];
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade100),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            label,
-            style: const TextStyle(
-              fontWeight: FontWeight.w600,
-              fontSize: 14,
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF3B5BDB).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(
+                    Icons.monitor_heart_outlined,
+                    color: Color(0xFF3B5BDB),
+                    size: 18,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                const Text(
+                  'Estado del Sistema',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 15,
+                    color: Color(0xFF1A1F36),
+                  ),
+                ),
+              ],
             ),
           ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-            decoration: BoxDecoration(
-              color: accentColor.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(
-                color: accentColor.withValues(alpha: 0.3),
-                width: 1,
+          const Divider(height: 1, thickness: 1, color: Color(0xFFF1F3F9)),
+
+          // Tablet/desktop: 2 columnas; mobile: lista vertical
+          if (isTablet)
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                children: [
+                  IntrinsicHeight(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Expanded(child: _buildStatusRow(items[0])),
+                        const SizedBox(width: 8),
+                        Expanded(child: _buildStatusRow(items[1])),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  IntrinsicHeight(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Expanded(child: _buildStatusRow(items[2])),
+                        const SizedBox(width: 8),
+                        Expanded(child: _buildStatusRow(items[3])),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-            ),
-            child: Text(
-              value,
-              style: TextStyle(
-                color: accentColor,
-                fontWeight: FontWeight.bold,
-                fontSize: 13,
-              ),
-            ),
-          ),
+            )
+          else
+            ...List.generate(items.length, (i) {
+              final isLast = i == items.length - 1;
+              return Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 13),
+                    child: _buildStatusRowContent(items[i]),
+                  ),
+                  if (!isLast)
+                    const Divider(
+                        height: 1,
+                        thickness: 1,
+                        indent: 64,
+                        color: Color(0xFFF1F3F9)),
+                ],
+              );
+            }),
         ],
       ),
     );
   }
+
+  // Tablet: cada item como contenedor con borde
+  Widget _buildStatusRow(_StatusItem item) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      decoration: BoxDecoration(
+        color: item.color.withValues(alpha: 0.04),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: item.color.withValues(alpha: 0.15)),
+      ),
+      child: _buildStatusRowContent(item),
+    );
+  }
+
+  // Contenido compartido entre layouts
+  Widget _buildStatusRowContent(_StatusItem item) {
+    return Row(
+      children: [
+        Container(
+          width: 36,
+          height: 36,
+          decoration: BoxDecoration(
+            color: item.color.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(item.icon, color: item.color, size: 18),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            item.label,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: Color(0xFF4A5568),
+            ),
+          ),
+        ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          decoration: BoxDecoration(
+            color: item.color.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: item.color.withValues(alpha: 0.2)),
+          ),
+          child: Text(
+            item.value,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: item.color,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Data classes ─────────────────────────────────────────────────────────────
+
+class _ModuleInfo {
+  const _ModuleInfo({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.color,
+    required this.animIndex,
+    required this.onTap,
+  });
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final Color color;
+  final int animIndex;
+  final VoidCallback onTap;
+}
+
+class _StatusItem {
+  const _StatusItem({
+    required this.label,
+    required this.value,
+    required this.color,
+    required this.icon,
+  });
+  final String label;
+  final String value;
+  final Color color;
+  final IconData icon;
 }
