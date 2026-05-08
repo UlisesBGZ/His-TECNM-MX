@@ -146,6 +146,8 @@ class _PatientFormScreenState extends State<PatientFormScreen> {
         colony: _colonyController.text.trim(),
         phone: _phoneController.text.trim(),
         email: _emailController.text.trim(),
+        ehrId: widget.patient?.ehrId,
+        linkageNamespace: widget.patient?.linkageNamespace,
       );
 
       final FhirPatient savedPatient = widget.patient == null
