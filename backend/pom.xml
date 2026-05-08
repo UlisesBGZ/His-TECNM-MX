@@ -601,11 +601,40 @@
                 </configuration>
             </plugin>
 
+            <!-- Agrega target/generated-sources al classpath de compilación -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>build-helper-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>add-openehr-generated-sources</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>add-source</goal>
+                        </goals>
+                        <configuration>
+                            <sources>
+                                <source>${project.build.directory}/generated-sources</source>
+                            </sources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
             <!-- openEHR SDK generator: genera clases Java tipadas desde .opt -->
             <plugin>
                 <groupId>org.ehrbase.openehr.sdk</groupId>
                 <artifactId>generator-maven-plugin</artifactId>
                 <version>${openehr-sdk.version}</version>
+                <executions>
+                    <execution>
+                        <id>generate-openehr-classes</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>codegen</goal>
+                        </goals>
+                    </execution>
+                </executions>
                 <configuration>
                     <outputDirectory>${project.build.directory}/generated-sources</outputDirectory>
                     <packageName>ca.uhn.fhir.jpa.starter.openehr.generated</packageName>
@@ -613,8 +642,8 @@
                     <addNullFlavor>true</addNullFlavor>
                     <choicesForSingleEvent>false</choicesForSingleEvent>
                     <templateFiles>
-                        <!-- Agrega aqui cada archivo .opt disponible en src/main/resources/templates -->
-                        <templateFile>${project.basedir}/src/main/resources/templates/clinical_summary.opt</templateFile>
+                        <templateFile>${project.basedir}/src/main/resources/templates/consulta_clinica.opt</templateFile>
+                        <templateFile>${project.basedir}/src/main/resources/templates/antecedentes_clinicos.opt</templateFile>
                     </templateFiles>
                 </configuration>
             </plugin>

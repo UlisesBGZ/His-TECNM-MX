@@ -1,8 +1,11 @@
 package ca.uhn.fhir.jpa.starter.virtualehr.controller;
 
+import ca.uhn.fhir.jpa.starter.virtualehr.dto.CompositionResponseDto;
 import ca.uhn.fhir.jpa.starter.virtualehr.dto.CreatePatientRequestDto;
 import ca.uhn.fhir.jpa.starter.virtualehr.dto.PatientLinkageResponseDto;
+import ca.uhn.fhir.jpa.starter.virtualehr.dto.SaveEncounterCompositionRequestDto;
 import ca.uhn.fhir.jpa.starter.virtualehr.dto.UnifiedPatientRecordResponseDto;
+import ca.uhn.fhir.jpa.starter.virtualehr.service.EhrbaseCompositionService;
 import ca.uhn.fhir.jpa.starter.virtualehr.service.PatientOrchestratorService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,9 +23,13 @@ import org.springframework.web.bind.annotation.RestController;
 public class VirtualEhrPatientController {
 
     private final PatientOrchestratorService patientOrchestratorService;
+    private final EhrbaseCompositionService ehrbaseCompositionService;
 
-    public VirtualEhrPatientController(PatientOrchestratorService patientOrchestratorService) {
+    public VirtualEhrPatientController(
+            PatientOrchestratorService patientOrchestratorService,
+            EhrbaseCompositionService ehrbaseCompositionService) {
         this.patientOrchestratorService = patientOrchestratorService;
+        this.ehrbaseCompositionService = ehrbaseCompositionService;
     }
 
     @PostMapping
@@ -36,5 +43,18 @@ public class VirtualEhrPatientController {
             @PathVariable("fhirPatientId") String fhirPatientId) {
         PatientLinkageResponseDto response = patientOrchestratorService.getPatientLinkage(fhirPatientId);
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/{fhirPatientId}/encounters/composition")
+    public ResponseEntity<CompositionResponseDto> saveEncounterComposition(
+            @PathVariable("fhirPatientId") String fhirPatientId,
+            @RequestBody SaveEncounterCompositionRequestDto request) {
+        String compositionId = ehrbaseCompositionService.saveConsultaClinica(request);
+        CompositionResponseDto response = new CompositionResponseDto(
+                compositionId,
+                request.getFhirEncounterId(),
+                request.getEhrId(),
+                "consulta_clinica");
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 }

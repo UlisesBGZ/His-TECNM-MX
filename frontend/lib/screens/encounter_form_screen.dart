@@ -204,6 +204,29 @@ class _EncounterFormScreenState extends State<EncounterFormScreen> {
         practitionerId: saved.practitionerId ?? encounter.practitionerId,
       );
 
+      // Dual-write: guardar composición openEHR en EHRbase (best effort)
+      final ehrId = _selectedPatient?.ehrId;
+      final fhirPatientId = _selectedPatient?.id;
+      final savedEncounterId = saved.id;
+      if (ehrId != null && ehrId.isNotEmpty &&
+          fhirPatientId != null && savedEncounterId != null) {
+        _fhirService.saveEncounterComposition(
+          fhirPatientId: fhirPatientId,
+          ehrId: ehrId,
+          fhirEncounterId: savedEncounterId,
+          motivoConsulta: encounter.motivoConsulta,
+          padecimientoActual: encounter.padecimientoActual,
+          diagnostico: encounter.diagnostico,
+          presionSistolica: encounter.vitals?.systolic,
+          presionDiastolica: encounter.vitals?.diastolic,
+          pulso: encounter.vitals?.heartRate,
+          temperatura: encounter.vitals?.temperature,
+          peso: encounter.vitals?.weight,
+          talla: encounter.vitals?.height,
+          frecuenciaRespiratoria: encounter.vitals?.respiratoryRate,
+        ); // fire-and-forget: FHIR ya está guardado, EHRbase no bloquea el UI
+      }
+
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

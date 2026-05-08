@@ -152,6 +152,22 @@
             "url": "{{base_api}}/virtual-ehr/patients/{{patient_id}}/linkage",
             "description": "Verifica si el paciente FHIR tiene un EHR vinculado en EHRbase"
           }
+        },
+        {
+          "name": "Guardar composición clínica (openEHR)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ehrId\": \"{{ehr_id}}\",\n  \"fhirEncounterId\": \"{{encounter_id}}\",\n  \"motivoConsulta\": \"Dolor de cabeza intenso desde hace 2 días\",\n  \"padecimientoActual\": \"El paciente refiere cefalea pulsátil, intensidad 7/10, sin fiebre\",\n  \"diagnostico\": \"Migraña sin aura\",\n  \"presionSistolica\": 120,\n  \"presionDiastolica\": 80,\n  \"pulso\": 72,\n  \"temperatura\": 36.5,\n  \"peso\": 70,\n  \"talla\": 175,\n  \"frecuenciaRespiratoria\": 16\n}"
+            },
+            "url": "{{base_api}}/virtual-ehr/patients/{{patient_id}}/encounters/composition",
+            "description": "Guarda datos clínicos del encuentro como composición openEHR en EHRbase. Requiere ehrId (UUID del EHR) y fhirEncounterId."
+          }
         }
       ]
     },

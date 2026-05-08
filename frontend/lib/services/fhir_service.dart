@@ -484,6 +484,60 @@ class FhirService {
     }
   }
 
+  Future<void> saveEncounterComposition({
+    required String fhirPatientId,
+    required String ehrId,
+    required String fhirEncounterId,
+    String? motivoConsulta,
+    String? padecimientoActual,
+    String? diagnostico,
+    double? presionSistolica,
+    double? presionDiastolica,
+    double? pulso,
+    double? temperatura,
+    double? peso,
+    double? talla,
+    double? frecuenciaRespiratoria,
+  }) async {
+    try {
+      final headers = await _getApiHeaders();
+      final body = <String, dynamic>{
+        'ehrId': ehrId,
+        'fhirEncounterId': fhirEncounterId,
+        if (motivoConsulta != null && motivoConsulta.isNotEmpty)
+          'motivoConsulta': motivoConsulta,
+        if (padecimientoActual != null && padecimientoActual.isNotEmpty)
+          'padecimientoActual': padecimientoActual,
+        if (diagnostico != null && diagnostico.isNotEmpty)
+          'diagnostico': diagnostico,
+        if (presionSistolica != null) 'presionSistolica': presionSistolica,
+        if (presionDiastolica != null) 'presionDiastolica': presionDiastolica,
+        if (pulso != null) 'pulso': pulso,
+        if (temperatura != null) 'temperatura': temperatura,
+        if (peso != null) 'peso': peso,
+        if (talla != null) 'talla': talla,
+        if (frecuenciaRespiratoria != null)
+          'frecuenciaRespiratoria': frecuenciaRespiratoria,
+      };
+
+      final response = await http.post(
+        Uri.parse(
+            '$apiBaseUrl/virtual-ehr/patients/$fhirPatientId/encounters/composition'),
+        headers: headers,
+        body: json.encode(body),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final result = json.decode(response.body) as Map<String, dynamic>;
+        print('✅ Composición openEHR guardada: ${result['compositionId']}');
+      } else {
+        print('⚠️ EHRbase composition respondió: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('⚠️ Error al guardar composición openEHR (no crítico): $e');
+    }
+  }
+
   Future<Map<String, dynamic>> verifyPatientLinkage(
       String fhirPatientId) async {
     try {
