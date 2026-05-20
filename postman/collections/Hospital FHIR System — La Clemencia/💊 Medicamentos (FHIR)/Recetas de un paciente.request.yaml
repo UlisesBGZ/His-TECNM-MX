@@ -1,0 +1,9 @@
+$kind: http-request
+url: "{{base_fhir}}/MedicationRequest?subject=Patient/{{patient_id}}"
+method: GET
+headers:
+  Authorization: Bearer {{token}}
+  Accept: application/fhir+json
+queryParams:
+  subject: Patient/{{patient_id}}
+order: 2000

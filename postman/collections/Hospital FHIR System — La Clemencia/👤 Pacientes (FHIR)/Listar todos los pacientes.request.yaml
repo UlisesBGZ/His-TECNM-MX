@@ -1,0 +1,10 @@
+$kind: http-request
+url: "{{base_fhir}}/Patient?_count=50&_total=accurate"
+method: GET
+headers:
+  Authorization: Bearer {{token}}
+  Accept: application/fhir+json
+queryParams:
+  _count: "50"
+  _total: accurate
+order: 1000

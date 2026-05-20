@@ -1,19 +1,25 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../models/fhir_antecedent.dart';
+import '../providers/auth_provider.dart';
 import '../services/fhir_service.dart';
 
 class AntecedentFormDialog extends StatefulWidget {
   final String patientId;
+  final String? ehrId;
   final AntecedentType type;
   final FhirAntecedent? initialAntecedent;
   final Future<void> Function(FhirAntecedent savedAntecedent)? onSaved;
+  final VoidCallback? onBack;
 
   const AntecedentFormDialog({
     super.key,
     required this.patientId,
+    this.ehrId,
     required this.type,
     this.initialAntecedent,
     this.onSaved,
+    this.onBack,
   });
 
   @override
@@ -22,18 +28,22 @@ class AntecedentFormDialog extends StatefulWidget {
   static Future<FhirAntecedent?> show({
     required BuildContext context,
     required String patientId,
+    String? ehrId,
     required AntecedentType type,
     FhirAntecedent? initialAntecedent,
     Future<void> Function(FhirAntecedent savedAntecedent)? onSaved,
+    VoidCallback? onBack,
   }) {
     return showDialog<FhirAntecedent?>(
       context: context,
       barrierDismissible: false,
       builder: (_) => AntecedentFormDialog(
         patientId: patientId,
+        ehrId: ehrId,
         type: type,
         initialAntecedent: initialAntecedent,
         onSaved: onSaved,
+        onBack: onBack,
       ),
     );
   }
@@ -69,6 +79,9 @@ class _AntecedentFormDialogState extends State<AntecedentFormDialog> {
 
     setState(() { _isSaving = true; _error = null; });
 
+    // Capturar antes del primer await para evitar uso de context tras gap asíncrono
+    final composerName = context.read<AuthProvider>().user?.fullName;
+
     try {
       final antecedent = FhirAntecedent(
         id: widget.initialAntecedent?.id,
@@ -79,8 +92,19 @@ class _AntecedentFormDialogState extends State<AntecedentFormDialog> {
       );
 
       final saved = await _fhirService.createOrUpdateAntecedent(antecedent);
-      await widget.onSaved?.call(saved);
 
+      // Dual-write a EHRbase (best effort)
+      if (widget.ehrId != null && widget.ehrId!.isNotEmpty) {
+        _fhirService.saveAntecedentesEhr(
+          fhirPatientId: widget.patientId,
+          ehrId: widget.ehrId!,
+          tipoAntecedente: widget.type.value,
+          contenido: _contentController.text.trim(),
+          composerName: composerName,
+        );
+      }
+
+      await widget.onSaved?.call(saved);
       if (mounted) Navigator.pop(context, saved);
     } catch (e) {
       setState(() {
@@ -106,6 +130,36 @@ class _AntecedentFormDialogState extends State<AntecedentFormDialog> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // ── Botón de regreso (solo cuando viene de la selección) ──
+              if (widget.onBack != null) ...[
+                InkWell(
+                  onTap: () {
+                    Navigator.pop(context);
+                    widget.onBack!();
+                  },
+                  borderRadius: BorderRadius.circular(8),
+                  child: const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.arrow_back_ios_new_rounded,
+                            size: 13, color: Color(0xFF64748B)),
+                        SizedBox(width: 4),
+                        Text(
+                          'Seleccionar otro',
+                          style: TextStyle(
+                              fontSize: 12,
+                              color: Color(0xFF64748B),
+                              fontWeight: FontWeight.w500),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ],
+
               // Header
               Row(
                 children: [
@@ -277,12 +331,14 @@ class _AntecedentFormDialogState extends State<AntecedentFormDialog> {
 /// Widget para actualización rápida de antecedentes durante captura de encuentro
 class QuickAntecedentUpdateButton extends StatelessWidget {
   final String patientId;
+  final String? ehrId;
   final Future<void> Function(FhirAntecedent savedAntecedent)?
       onAntecedentSaved;
 
   const QuickAntecedentUpdateButton({
     super.key,
     required this.patientId,
+    this.ehrId,
     this.onAntecedentSaved,
   });
 
@@ -358,6 +414,7 @@ class QuickAntecedentUpdateButton extends StatelessWidget {
         await AntecedentFormDialog.show(
           context: context,
           patientId: patientId,
+          ehrId: ehrId,
           type: type,
           initialAntecedent: existing,
           onSaved: onAntecedentSaved,

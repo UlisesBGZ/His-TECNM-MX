@@ -64,7 +64,7 @@ services:
       - ehrbase-postgres:/var/lib/postgresql/data
 
   ehrbase-server:
-    image: ehrbase/ehrbase:next
+    image: ehrbase/ehrbase:2.6.0
     container_name: ehrbase-server
     restart: on-failure
     ports:

@@ -1,0 +1,8 @@
+$kind: http-request
+description: Verifica si el paciente FHIR tiene un EHR vinculado en EHRbase
+url: "{{base_api}}/virtual-ehr/patients/{{patient_id}}/linkage"
+method: GET
+headers:
+  Authorization: Bearer {{token}}
+  Accept: application/json
+order: 1000

@@ -17,6 +17,7 @@ class _LoginScreenState extends State<LoginScreen>
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
+  final _passwordFocus = FocusNode();
 
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
@@ -48,6 +49,7 @@ class _LoginScreenState extends State<LoginScreen>
     _animationController.dispose();
     _usernameController.dispose();
     _passwordController.dispose();
+    _passwordFocus.dispose();
     super.dispose();
   }
 
@@ -186,6 +188,8 @@ class _LoginScreenState extends State<LoginScreen>
             const SizedBox(height: 6),
             TextFormField(
               controller: _usernameController,
+              textInputAction: TextInputAction.next,
+              onFieldSubmitted: (_) => _passwordFocus.requestFocus(),
               style: const TextStyle(fontSize: 14, color: Color(0xFF1E293B)),
               decoration: _inputDecoration(
                 hint: 'Ingresa tu usuario',
@@ -199,7 +203,10 @@ class _LoginScreenState extends State<LoginScreen>
             const SizedBox(height: 6),
             TextFormField(
               controller: _passwordController,
+              focusNode: _passwordFocus,
               obscureText: _obscurePassword,
+              textInputAction: TextInputAction.done,
+              onFieldSubmitted: (_) => _handleLogin(),
               style: const TextStyle(fontSize: 14, color: Color(0xFF1E293B)),
               decoration: _inputDecoration(
                 hint: 'Ingresa tu contraseña',

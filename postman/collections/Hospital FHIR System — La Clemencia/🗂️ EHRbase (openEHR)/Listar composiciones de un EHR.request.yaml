@@ -1,0 +1,7 @@
+$kind: http-request
+url: "{{base_ehr}}/ehr/{{ehr_id}}/versioned_composition"
+method: GET
+headers:
+  Authorization: Basic ZWhyYmFzZTplaHJiYXNl
+  Accept: application/json
+order: 2000

@@ -1,0 +1,27 @@
+$kind: http-request
+description: Crea el paciente en FHIR Y en EHRbase simultáneamente
+url: "{{base_api}}/virtual-ehr/patients"
+method: POST
+headers:
+  Authorization: Bearer {{token}}
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "identifier": "PAGJ000513HDFNZNA5",
+      "firstName": "Juan",
+      "paternalLastName": "Pérez",
+      "maternalLastName": "García",
+      "gender": "male",
+      "birthDate": "1990-05-13",
+      "bloodType": "O+",
+      "phone": "5551234567",
+      "email": "juan@example.com",
+      "state": "CDMX",
+      "municipality": "Cuauhtémoc",
+      "postalCode": "06600",
+      "streetAndNumber": "Av. Reforma 123",
+      "colony": "Centro"
+    }
+order: 4000

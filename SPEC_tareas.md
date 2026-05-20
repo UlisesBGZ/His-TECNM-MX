@@ -15,8 +15,6 @@ Registrar las tareas activas y la secuencia de trabajo para el MVP, sin salir de
 - T-04: Implementar registro universal de pacientes.
 - T-05: Implementar creacion y seguimiento de encuentros con estado.
 - T-06: Verificar el enlace entre el ID FHIR del paciente y el ID de EHRbase.
-- T-07: Estandarizar la captura de recetas medicas con plantilla unica y mapeo FHIR MedicationRequest.
-- T-08: Alinear captura de multiples medicamentos para un mismo paciente sin romper reglas normativas.
 
 ## Estado actual
 - Completado: T-01 rescate de captura demografica del semestre pasado.
@@ -25,21 +23,7 @@ Registrar las tareas activas y la secuencia de trabajo para el MVP, sin salir de
 - Completado: T-04 registro universal de pacientes.
 - Completado: T-05 creacion y seguimiento de encuentros con estado.
 - Completado: T-06 verificacion de enlace FHIR-EHRbase.
-- Completado: T-07 estandarizacion de receta medica.
-- Completado: T-08 captura secuencial de multiples medicamentos con trazabilidad de grupo de receta.
-- Siguiente paso activo: ampliar pruebas automatizadas del flujo de receta multiple.
-
-## T-07 cerrado
-- Plantilla normativa de receta definida en `SPEC_receta_normativa.md`.
-- Frontend actualizado con campos estructurados y validaciones obligatorias de receta.
-- Backend actualizado con interceptor para rechazar `MedicationRequest` incompleto o inconsistente.
-- Validacion end-to-end completada con evidencia en `SPEC_validacion_receta_e2e.md`.
-
-## T-08 cerrado
-- El formulario permite captura secuencial para varios medicamentos del mismo paciente con accion "Guardar y agregar otro".
-- Cada medicamento se almacena como `MedicationRequest` individual para mantener compatibilidad FHIR R4.
-- Se agrega `groupIdentifier` para agrupar los medicamentos de una misma receta clinica.
-- La lista de recetas muestra agrupacion visual por `groupIdentifier` para facilitar revision/edicion de recetas con multiples medicamentos.
+- Siguiente paso activo: ampliar cobertura de pruebas automatizadas del flujo clinico (encuentros, antecedentes, expediente).
 
 ## T-01 cerrado
 - Comparacion del arquetipo historico contra el formulario actual documentada en `SPEC_comparacion_arquetipo.md`.
@@ -104,5 +88,5 @@ Registrar las tareas activas y la secuencia de trabajo para el MVP, sin salir de
 - No hay campos fuera de la NOM definida para el alcance del MVP.
 
 ## Pendientes de validacion
-- Sin pendientes criticos abiertos para T-01 a T-08.
-- Pendiente operativo: agregar pruebas automatizadas del flujo de receta multiple y agrupacion.
+- Sin pendientes criticos abiertos para T-01 a T-06.
+- Pendiente operativo: ampliar pruebas automatizadas del flujo clinico (encuentros, antecedentes, expediente clinico).

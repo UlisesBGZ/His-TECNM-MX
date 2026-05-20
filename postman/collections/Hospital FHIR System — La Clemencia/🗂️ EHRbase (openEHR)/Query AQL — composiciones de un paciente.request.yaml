@@ -1,0 +1,13 @@
+$kind: http-request
+url: "{{base_ehr}}/query/aql"
+method: POST
+headers:
+  Authorization: Basic ZWhyYmFzZTplaHJiYXNl
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "q": "SELECT c/uid/value, c/name/value FROM EHR e[ehr_id/value='{{ehr_id}}'] CONTAINS COMPOSITION c"
+    }
+order: 4000

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import '../models/fhir_encounter.dart';
 import '../models/fhir_patient.dart';
 import '../models/fhir_antecedent.dart';
@@ -46,16 +45,17 @@ class _EncounterFormScreenState extends State<EncounterFormScreen> {
   static const _primary = Color(0xFF3B5BDB);
   static const _bg = Color(0xFFF4F6FB);
 
-  bool get _isFemalePatient {
-    final gender = _selectedPatient?.gender?.toLowerCase().trim();
-    return gender == 'female' || gender == 'femenino' || gender == 'mujer';
-  }
-
-  List<AntecedentType> get _availableAntecedentTypes {
-    if (_isFemalePatient) return AntecedentType.values;
-    return AntecedentType.values
-        .where((t) => t != AntecedentType.ginecoObstetrico)
-        .toList();
+  String _formatHeaderDateTime() {
+    final now = DateTime.now();
+    const meses = [
+      '', 'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+      'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'
+    ];
+    final mes = meses[now.month];
+    final hora = now.hour % 12 == 0 ? 12 : now.hour % 12;
+    final minuto = now.minute.toString().padLeft(2, '0');
+    final periodo = now.hour >= 12 ? 'PM' : 'AM';
+    return '${now.day} de $mes del ${now.year} • $hora:$minuto $periodo';
   }
 
   @override
@@ -123,24 +123,6 @@ class _EncounterFormScreenState extends State<EncounterFormScreen> {
     }
   }
 
-  Future<void> _selectDate() async {
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: _selectedDate ?? DateTime.now(),
-      firstDate: DateTime.now().subtract(const Duration(days: 365)),
-      lastDate: DateTime.now().add(const Duration(days: 730)),
-      locale: const Locale('es', 'ES'),
-    );
-    if (picked != null) setState(() => _selectedDate = picked);
-  }
-
-  Future<void> _selectTime() async {
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: _selectedTime ?? TimeOfDay.now(),
-    );
-    if (picked != null) setState(() => _selectedTime = picked);
-  }
 
   DateTime? _getStartDateTime() {
     if (_selectedDate == null || _selectedTime == null) return null;
@@ -259,78 +241,211 @@ class _EncounterFormScreenState extends State<EncounterFormScreen> {
     }
 
     final patientId = _selectedPatient!.id ?? '';
-    final availableTypes = _availableAntecedentTypes;
     final existingByType = <AntecedentType, FhirAntecedent?>{};
-    for (final type in availableTypes) {
-      existingByType[type] = await _fhirService.getLatestAntecedentByType(patientId, type);
+    for (final type in AntecedentType.values) {
+      existingByType[type] =
+          await _fhirService.getLatestAntecedentByType(patientId, type);
     }
 
     if (!mounted) return;
     showDialog(
       context: context,
       builder: (dialogCtx) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 8),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16),
-                child: Text(
-                  'Actualizar antecedente',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF1E293B),
-                  ),
-                  textAlign: TextAlign.center,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        insetPadding:
+            const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 480),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // ── Header ─────────────────────────────────────────
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF59E0B).withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.history_outlined,
+                          color: Color(0xFFF59E0B), size: 20),
+                    ),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Antecedentes clínicos',
+                            style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF1E293B)),
+                          ),
+                          Text(
+                            'Selecciona el que deseas actualizar',
+                            style: TextStyle(
+                                fontSize: 12, color: Color(0xFF64748B)),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-              const SizedBox(height: 8),
-              const Divider(),
-              ...availableTypes.map((type) {
-                final existing = existingByType[type];
-                return ListTile(
-                  leading: const Icon(Icons.edit_outlined, color: _primary),
-                  title: Text(type.displayName,
-                      style: const TextStyle(
-                          fontWeight: FontWeight.w500, color: Color(0xFF1E293B))),
-                  subtitle: Text(
-                    existing?.content.isNotEmpty == true
-                        ? existing!.content
-                        : 'Sin registro',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
+                const SizedBox(height: 20),
+                const Divider(height: 1, color: Color(0xFFE2E8F0)),
+                const SizedBox(height: 12),
+
+                // ── Tarjetas por tipo ───────────────────────────────
+                ...AntecedentType.values.map((type) {
+                  final existing = existingByType[type];
+                  final hasData = existing?.content.isNotEmpty == true;
+
+                  final (Color typeColor, IconData typeIcon) = switch (type) {
+                    AntecedentType.heredofamiliar => (
+                      const Color(0xFF3B5BDB),
+                      Icons.family_restroom_outlined,
+                    ),
+                    AntecedentType.noPatologico => (
+                      const Color(0xFF10B981),
+                      Icons.health_and_safety_outlined,
+                    ),
+                    AntecedentType.ginecoObstetrico => (
+                      const Color(0xFFEC4899),
+                      Icons.pregnant_woman_outlined,
+                    ),
+                  };
+
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Material(
+                      color: Colors.transparent,
+                      borderRadius: BorderRadius.circular(12),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(12),
+                        onTap: () async {
+                          Navigator.pop(dialogCtx);
+                          if (!mounted) return;
+                          try {
+                            await AntecedentFormDialog.show(
+                              context: context,
+                              patientId: _selectedPatient!.id ?? '',
+                              ehrId: _selectedPatient!.ehrId,
+                              type: type,
+                              initialAntecedent: existing,
+                              onBack: _openAntecedentQuickUpdate,
+                            );
+                          } catch (e) {
+                            if (!mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                  content: Text('Error: $e'),
+                                  backgroundColor: Colors.red),
+                            );
+                          }
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 12),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12),
+                            border:
+                                Border.all(color: const Color(0xFFE2E8F0)),
+                            color: const Color(0xFFF8FAFC),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color:
+                                      typeColor.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Icon(typeIcon,
+                                    size: 18, color: typeColor),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      type.displayName,
+                                      style: const TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w600,
+                                          color: Color(0xFF1E293B)),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      hasData
+                                          ? existing!.content
+                                          : 'Sin registro',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: hasData
+                                            ? const Color(0xFF64748B)
+                                            : const Color(0xFFCBD5E1),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: hasData
+                                      ? const Color(0xFF10B981)
+                                          .withValues(alpha: 0.1)
+                                      : Colors.grey.shade100,
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Text(
+                                  hasData ? 'Actual' : 'Nuevo',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w600,
+                                    color: hasData
+                                        ? const Color(0xFF10B981)
+                                        : const Color(0xFF94A3B8),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              const Icon(Icons.chevron_right,
+                                  color: Color(0xFF94A3B8), size: 18),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                }),
+
+                const SizedBox(height: 4),
+                SizedBox(
+                  width: double.infinity,
+                  child: TextButton(
+                    onPressed: () => Navigator.pop(dialogCtx),
+                    style: TextButton.styleFrom(
+                      foregroundColor: const Color(0xFF64748B),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                    child: const Text('Cancelar'),
                   ),
-                  trailing: const Icon(Icons.chevron_right, color: Color(0xFF94A3B8)),
-                  onTap: () async {
-                    Navigator.pop(dialogCtx);
-                    if (_selectedPatient == null) return;
-                    try {
-                      if (!mounted) return;
-                      await AntecedentFormDialog.show(
-                        context: context,
-                        patientId: _selectedPatient!.id ?? '',
-                        type: type,
-                        initialAntecedent: existing,
-                      );
-                    } catch (e) {
-                      if (!mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-                      );
-                    }
-                  },
-                );
-              }),
-              const SizedBox(height: 8),
-              TextButton(
-                onPressed: () => Navigator.pop(dialogCtx),
-                child: const Text('Cancelar'),
-              ),
-            ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -381,23 +496,14 @@ class _EncounterFormScreenState extends State<EncounterFormScreen> {
                 ),
               ),
               Text(
-                isEditing
-                    ? 'Modifica los datos del encuentro'
-                    : 'Registra la consulta del paciente',
+                _formatHeaderDateTime(),
                 style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
               ),
             ],
           ),
           actions: [
-            Tooltip(
-              message: 'Actualizar antecedentes',
-              child: IconButton(
-                icon: const Icon(Icons.history_outlined),
-                onPressed: _openAntecedentQuickUpdate,
-                color: const Color(0xFF64748B),
-              ),
-            ),
-            const SizedBox(width: 8),
+            _AntecedentHeaderBtn(onTap: _openAntecedentQuickUpdate),
+            const SizedBox(width: 12),
           ],
           bottom: PreferredSize(
             preferredSize: const Size.fromHeight(1),
@@ -435,15 +541,15 @@ class _EncounterFormScreenState extends State<EncounterFormScreen> {
                             children: [
                               _buildField(
                                 controller: _motivoConsultaController,
-                                label: 'Motivo de la consulta',
-                                hint: 'Ej: Revisión general, Dolor de cabeza...',
+                                label: 'Motivo de consulta',
+                                hint: 'Razón principal de la visita (ej: dolor de cabeza, revisión anual, control de presión...)',
                                 maxLines: 2,
                               ),
                               const SizedBox(height: 14),
                               _buildField(
                                 controller: _padecimientoActualController,
-                                label: 'Padecimiento actual',
-                                hint: 'Descripción de síntomas y queja principal...',
+                                label: 'Historia del padecimiento actual',
+                                hint: 'Descripción detallada: inicio, duración, intensidad, síntomas asociados y evolución...',
                                 maxLines: 3,
                               ),
                             ],
@@ -470,14 +576,14 @@ class _EncounterFormScreenState extends State<EncounterFormScreen> {
                               _buildField(
                                 controller: _diagnosticoController,
                                 label: 'Diagnóstico',
-                                hint: 'Diagnóstico clínico...',
+                                hint: 'ej: Hipertensión arterial esencial, Diabetes mellitus tipo 2...',
                                 maxLines: 2,
                               ),
                               const SizedBox(height: 14),
                               _buildField(
                                 controller: _planTratamientoController,
                                 label: 'Plan de tratamiento',
-                                hint: 'Medicamentos, recomendaciones, etc...',
+                                hint: 'ej: Metformina 850mg cada 12h, dieta baja en carbohidratos, control en 4 semanas...',
                                 maxLines: 3,
                               ),
                             ],
@@ -485,20 +591,7 @@ class _EncounterFormScreenState extends State<EncounterFormScreen> {
                         ),
                         const SizedBox(height: 16),
 
-                        // Fecha y hora
-                        _buildCard(
-                          color: const Color(0xFFEF4444),
-                          icon: Icons.calendar_today_outlined,
-                          title: 'Fecha y hora',
-                          child: Row(
-                            children: [
-                              Expanded(child: _buildDateTile()),
-                              const SizedBox(width: 12),
-                              Expanded(child: _buildTimeTile()),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 28),
+                        const SizedBox(height: 12),
 
                         // Botones de acción
                         Row(
@@ -530,11 +623,7 @@ class _EncounterFormScreenState extends State<EncounterFormScreen> {
                                     )
                                   : const Icon(Icons.check, size: 18),
                               label: Text(
-                                _isSaving
-                                    ? 'Guardando...'
-                                    : (isEditing
-                                        ? 'Actualizar Encuentro'
-                                        : 'Crear Encuentro'),
+                                _isSaving ? 'Guardando...' : 'Guardar',
                               ),
                               style: FilledButton.styleFrom(
                                 backgroundColor: _primary,
@@ -753,28 +842,104 @@ class _EncounterFormScreenState extends State<EncounterFormScreen> {
     );
   }
 
+  String? _validateVital(
+      String? value, double min, double max, String rangeLabel) {
+    if (value == null || value.trim().isEmpty) return null;
+    final parsed = double.tryParse(value.trim());
+    if (parsed == null) return 'Ingresa un número válido';
+    if (parsed < min || parsed > max) return 'Rango válido: $rangeLabel';
+    return null;
+  }
+
   Widget _buildVitalsGrid() {
     return Column(
       children: [
         Row(
           children: [
-            Expanded(child: _buildVitalField('Peso (kg)', _pesoController)),
+            Expanded(
+              child: _buildVitalField(
+                'Peso (kg)',
+                _pesoController,
+                hint: 'ej: 70',
+                validator: (v) => _validateVital(v, 0.5, 300, '0.5 – 300 kg'),
+              ),
+            ),
             const SizedBox(width: 10),
-            Expanded(child: _buildVitalField('Talla (cm)', _tallaController)),
+            Expanded(
+              child: _buildVitalField(
+                'Talla (cm)',
+                _tallaController,
+                hint: 'ej: 170',
+                validator: (v) => _validateVital(v, 30, 250, '30 – 250 cm'),
+              ),
+            ),
             const SizedBox(width: 10),
-            Expanded(child: _buildVitalField('FC (lpm)', _frecuenciaCardiacaController)),
+            Expanded(
+              child: _buildVitalField(
+                'FC (lpm)',
+                _frecuenciaCardiacaController,
+                hint: 'ej: 75',
+                validator: (v) => _validateVital(v, 20, 300, '20 – 300 lpm'),
+              ),
+            ),
             const SizedBox(width: 10),
-            Expanded(child: _buildVitalField('FR (rpm)', _frecuenciaRespiratoriaController)),
+            Expanded(
+              child: _buildVitalField(
+                'FR (rpm)',
+                _frecuenciaRespiratoriaController,
+                hint: 'ej: 16',
+                validator: (v) => _validateVital(v, 4, 60, '4 – 60 rpm'),
+              ),
+            ),
           ],
         ),
         const SizedBox(height: 10),
         Row(
           children: [
-            Expanded(child: _buildVitalField('TA Sistólica', _sistolicaController)),
+            Expanded(
+              child: _buildVitalField(
+                'TA Sistólica (mmHg)',
+                _sistolicaController,
+                hint: 'ej: 120',
+                validator: (v) {
+                  final base = _validateVital(v, 50, 300, '50 – 300 mmHg');
+                  if (base != null) return base;
+                  final sist = double.tryParse(v?.trim() ?? '');
+                  final dias = double.tryParse(_diastolicaController.text.trim());
+                  if (sist != null && dias != null && sist <= dias) {
+                    return 'Debe ser mayor que diastólica';
+                  }
+                  return null;
+                },
+              ),
+            ),
             const SizedBox(width: 10),
-            Expanded(child: _buildVitalField('TA Diastólica', _diastolicaController)),
+            Expanded(
+              child: _buildVitalField(
+                'TA Diastólica (mmHg)',
+                _diastolicaController,
+                hint: 'ej: 80',
+                validator: (v) {
+                  final base = _validateVital(v, 20, 200, '20 – 200 mmHg');
+                  if (base != null) return base;
+                  final sist = double.tryParse(_sistolicaController.text.trim());
+                  final dias = double.tryParse(v?.trim() ?? '');
+                  if (sist != null && dias != null && dias >= sist) {
+                    return 'Debe ser menor que sistólica';
+                  }
+                  return null;
+                },
+              ),
+            ),
             const SizedBox(width: 10),
-            Expanded(child: _buildVitalField('Temp. (°C)', _temperaturaController)),
+            Expanded(
+              child: _buildVitalField(
+                'Temp. (°C)',
+                _temperaturaController,
+                hint: 'ej: 36.5',
+                validator: (v) => _validateVital(v, 25, 45, '25 – 45 °C'),
+              ),
+            ),
             const Expanded(child: SizedBox()),
           ],
         ),
@@ -782,7 +947,12 @@ class _EncounterFormScreenState extends State<EncounterFormScreen> {
     );
   }
 
-  Widget _buildVitalField(String label, TextEditingController controller) {
+  Widget _buildVitalField(
+    String label,
+    TextEditingController controller, {
+    String? hint,
+    String? Function(String?)? validator,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -792,15 +962,20 @@ class _EncounterFormScreenState extends State<EncounterFormScreen> {
               fontSize: 11, fontWeight: FontWeight.w500, color: Color(0xFF64748B)),
         ),
         const SizedBox(height: 4),
-        TextField(
+        TextFormField(
           controller: controller,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           style: const TextStyle(fontSize: 13, color: Color(0xFF1E293B)),
+          validator: validator,
+          autovalidateMode: AutovalidateMode.onUserInteraction,
           decoration: InputDecoration(
+            hintText: hint,
+            hintStyle: const TextStyle(fontSize: 11, color: Color(0xFFCBD5E1)),
             filled: true,
             fillColor: const Color(0xFFF8FAFC),
             isDense: true,
             contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+            errorStyle: const TextStyle(fontSize: 10, height: 1.2),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
               borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
@@ -813,75 +988,69 @@ class _EncounterFormScreenState extends State<EncounterFormScreen> {
               borderRadius: BorderRadius.circular(8),
               borderSide: const BorderSide(color: _primary, width: 1.5),
             ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(color: Color(0xFFEF4444)),
+            ),
+            focusedErrorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(color: Color(0xFFEF4444), width: 1.5),
+            ),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildDateTile() {
-    return GestureDetector(
-      onTap: _selectDate,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        decoration: BoxDecoration(
-          color: const Color(0xFFF8FAFC),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: const Color(0xFFE2E8F0)),
-        ),
-        child: Row(
-          children: [
-            const Icon(Icons.calendar_today_outlined,
-                size: 16, color: Color(0xFF94A3B8)),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                _selectedDate != null
-                    ? DateFormat('dd/MM/yyyy').format(_selectedDate!)
-                    : 'Seleccionar fecha',
-                style: TextStyle(
-                  fontSize: 13,
-                  color: _selectedDate != null
-                      ? const Color(0xFF1E293B)
-                      : const Color(0xFFCBD5E1),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+}
 
-  Widget _buildTimeTile() {
+class _AntecedentHeaderBtn extends StatefulWidget {
+  final VoidCallback onTap;
+  const _AntecedentHeaderBtn({required this.onTap});
+
+  @override
+  State<_AntecedentHeaderBtn> createState() => _AntecedentHeaderBtnState();
+}
+
+class _AntecedentHeaderBtnState extends State<_AntecedentHeaderBtn> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    const color = Color(0xFFF59E0B);
     return GestureDetector(
-      onTap: _selectTime,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        decoration: BoxDecoration(
-          color: const Color(0xFFF8FAFC),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: const Color(0xFFE2E8F0)),
-        ),
-        child: Row(
-          children: [
-            const Icon(Icons.access_time_outlined,
-                size: 16, color: Color(0xFF94A3B8)),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                _selectedTime != null
-                    ? _selectedTime!.format(context)
-                    : 'Seleccionar hora',
+      onTap: widget.onTap,
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        onEnter: (_) => setState(() => _hovered = true),
+        onExit: (_) => setState(() => _hovered = false),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+          decoration: BoxDecoration(
+            color: _hovered
+                ? color.withValues(alpha: 0.18)
+                : color.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: color.withValues(alpha: _hovered ? 0.5 : 0.3),
+            ),
+          ),
+          child: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.history_outlined, size: 16, color: color),
+              SizedBox(width: 6),
+              Text(
+                'Actualizar antecedentes',
                 style: TextStyle(
-                  fontSize: 13,
-                  color: _selectedTime != null
-                      ? const Color(0xFF1E293B)
-                      : const Color(0xFFCBD5E1),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: color,
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

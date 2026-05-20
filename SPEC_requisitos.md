@@ -17,11 +17,11 @@ Definir el alcance funcional y tecnico del MVP para residentes nuevos, mantenimi
 - Lenguaje backend: Java 17+ (recomendado 21 LTS para el equipo).
 - Seguridad: JJWT 0.12.6 + jBCrypt 0.4.
 - Persistencia SQL: PostgreSQL 16 (`postgres:16-alpine`).
-- Integracion openEHR: openEHR SDK 2.30.0 + EHRbase (`ehrbase/ehrbase:next`).
+- Integracion openEHR: openEHR SDK 2.30.0 + EHRbase 2.6.0 (`ehrbase/ehrbase:2.6.0`) + PostgreSQL EHRbase (`ehrbase/ehrbase-v2-postgres:16.2`).
 - Cliente frontend: Flutter (objetivo documentado: 3.27.3) + Dart (objetivo: 3.6.1; pubspec permite `>=3.0.0 <4.0.0`).
 - Estado frontend: Provider ^6.1.1.
 - Cliente HTTP frontend: http ^1.2.0.
-- Infra local: Docker + Docker Compose.a
+- Infra local: Docker + Docker Compose.
 
 ## Requisitos funcionales base del starter
 - RF-01: Iniciar sesion con JWT.
@@ -35,7 +35,6 @@ Definir el alcance funcional y tecnico del MVP para residentes nuevos, mantenimi
 - RF-07: Orquestacion virtual EHR (creacion paciente FHIR + vinculo EHRbase).
 - RF-08: Creacion y seguimiento de encuentros con estatus pendiente, activa y finalizada.
 - RF-09: Captura de antecedentes demograficos y clinicos base conforme a las pantallas aprobadas.
-- RF-10: Captura y gestion de receta medica estandarizada con validacion clinica minima y trazabilidad del prescriptor.
 
 ## Alcance minimo de captura del paciente
 - Identificacion: CURP o identificador institucional.
@@ -60,8 +59,6 @@ Definir el alcance funcional y tecnico del MVP para residentes nuevos, mantenimi
 - RB-04: Los datos clinicos viven en EHRbase; los datos estructurados/demograficos viven en FHIR.
 - RB-05: El ID generado por EHRbase debe vincularse al paciente FHIR dentro del flujo virtual EHR.
 - RB-06: Los formularios deben separar datos demograficos, contacto y antecedentes generales.
-- RB-07: Una receta valida requiere paciente, medicamento, dosis/instrucciones, cantidad, fecha y prescriptor identificable.
-- RB-08: Si se prescriben multiples medicamentos para el mismo evento clinico, cada uno debe almacenarse como `MedicationRequest` independiente y compartir un identificador de grupo.
 
 ## Criterios minimos de cumplimiento
 - RF-01/RF-02: login valido devuelve token y restringe rutas por rol.
@@ -70,8 +67,6 @@ Definir el alcance funcional y tecnico del MVP para residentes nuevos, mantenimi
 - RF-06/RF-07: alta unificada retorna identificadores FHIR/EHR o error controlado.
 - RF-08: encuentros no pueden quedar sin estado.
 - RF-09: la captura respeta el formato definido por el arquetipo y la NOM-024-SSA3-2012.
-- RF-10: receta usa plantilla estandar definida en `SPEC_receta_normativa.md` y mapea a `MedicationRequest` con campos minimos obligatorios.
-- RF-10/RB-08: captura multiple de medicamentos conserva validaciones por item y trazabilidad comun de receta.
 - RNF-02: password no se almacena en texto plano; token obligatorio en rutas protegidas.
 
 ## Requisitos tecnicos minimos

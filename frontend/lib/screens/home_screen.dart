@@ -5,7 +5,6 @@ import 'login_screen.dart';
 import 'user_management_screen.dart';
 import 'patient_list_screen.dart';
 import 'encounter_list_screen.dart';
-import 'medication_list_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -235,15 +234,6 @@ class _HomeScreenState extends State<HomeScreen>
           animIndex: 3,
           onTap: () => Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => const EncounterListScreen())),
-        ),
-        _ModuleInfo(
-          icon: Icons.vaccines_outlined,
-          title: 'Recetas',
-          subtitle: 'Administración de medicamentos',
-          color: const Color(0xFFF59E0B),
-          animIndex: 4,
-          onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const MedicationListScreen())),
         ),
       ];
 

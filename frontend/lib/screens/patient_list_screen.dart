@@ -104,29 +104,323 @@ class _PatientListScreenState extends State<PatientListScreen> {
     });
   }
 
-  Future<void> _confirmDelete(FhirPatient patient) async {
+  Future<void> _showDemographicsDialog(FhirPatient patient) async {
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        titlePadding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+        contentPadding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFF3B5BDB).withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(Icons.person_outline,
+                  size: 20, color: Color(0xFF3B5BDB)),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Datos demográficos',
+                    style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF1A1F36)),
+                  ),
+                  Text(
+                    patient.fullName,
+                    style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w400,
+                        color: Color(0xFF64748B)),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Divider(height: 20),
+              _demoRow(Icons.badge_outlined, 'CURP',
+                  patient.identifier ?? '—'),
+              _demoRow(Icons.cake_outlined, 'Fecha de nacimiento',
+                  patient.birthDate ?? '—'),
+              _demoRow(
+                Icons.wc_outlined,
+                'Sexo',
+                patient.gender == 'male'
+                    ? 'Masculino'
+                    : patient.gender == 'female'
+                        ? 'Femenino'
+                        : 'Otro',
+              ),
+              _demoRow(Icons.water_drop_outlined, 'Tipo de sangre',
+                  patient.bloodType ?? '—'),
+              _demoRow(Icons.phone_outlined, 'Teléfono',
+                  patient.phone ?? '—'),
+              _demoRow(Icons.email_outlined, 'Correo',
+                  patient.email ?? '—'),
+              _demoRow(
+                Icons.location_on_outlined,
+                'Dirección',
+                [
+                  patient.streetAndNumber,
+                  patient.colony,
+                  patient.municipality,
+                  patient.state,
+                  patient.postalCode,
+                ].where((s) => s != null && s.isNotEmpty).join(', ').isNotEmpty
+                    ? [
+                        patient.streetAndNumber,
+                        patient.colony,
+                        patient.municipality,
+                        patient.state,
+                        patient.postalCode,
+                      ]
+                        .where((s) => s != null && s.isNotEmpty)
+                        .join(', ')
+                    : '—',
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFF3B5BDB),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
+            ),
+            child: const Text('Cerrar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _demoRow(IconData icon, String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 5),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 15, color: const Color(0xFF94A3B8)),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label,
+                    style: const TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF94A3B8),
+                        letterSpacing: 0.3)),
+                const SizedBox(height: 1),
+                Text(value,
+                    style: const TextStyle(
+                        fontSize: 13, color: Color(0xFF334155))),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showEditDemographicsWarning(FhirPatient patient) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Confirmar eliminación'),
-        content: Text(
-          '¿Estás seguro de que deseas eliminar al paciente "${patient.fullName}"?\n\nEsta acción no se puede deshacer.',
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        titlePadding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+        contentPadding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.amber.shade50,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(Icons.edit_note_outlined,
+                  size: 20, color: Colors.amber[700]),
+            ),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text(
+                'Editar datos demográficos',
+                style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF1A1F36)),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Divider(height: 20),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.amber.shade50,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.amber.shade200),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.warning_amber_rounded,
+                      size: 18, color: Colors.amber[700]),
+                  const SizedBox(width: 10),
+                  const Expanded(
+                    child: Text(
+                      'Estás a punto de modificar los datos demográficos de este paciente. Los cambios se reflejarán de inmediato en el expediente institucional.',
+                      style: TextStyle(fontSize: 13, color: Color(0xFF78350F)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 10),
+            const Text(
+              '¿Deseas continuar con la edición?',
+              style: TextStyle(fontSize: 13, color: Color(0xFF64748B)),
+            ),
+          ],
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
+            onPressed: () => Navigator.of(ctx).pop(false),
             child: const Text('Cancelar'),
           ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: FilledButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Eliminar'),
+          FilledButton.icon(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            icon: const Icon(Icons.edit_outlined, size: 15),
+            label: const Text('Sí, editar'),
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFF10B981),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
+            ),
           ),
         ],
       ),
     );
 
     if (confirmed == true && mounted) {
+      await _navigateToForm(patient: patient);
+    }
+  }
+
+  Future<void> _confirmDelete(FhirPatient patient) async {
+    // First confirmation
+    final firstConfirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.red.shade50,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(Icons.delete_outline,
+                  size: 20, color: Colors.red[400]),
+            ),
+            const SizedBox(width: 12),
+            const Text('Eliminar paciente',
+                style:
+                    TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+          ],
+        ),
+        content: Text(
+          '¿Estás seguro de que deseas eliminar al paciente "${patient.fullName}"?',
+          style: const TextStyle(fontSize: 14, color: Color(0xFF4A5568)),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: FilledButton.styleFrom(
+              backgroundColor: Colors.red,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
+            ),
+            child: const Text('Continuar'),
+          ),
+        ],
+      ),
+    );
+
+    if (firstConfirm != true || !mounted) return;
+
+    // Second confirmation
+    final secondConfirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.red.shade50,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child:
+                  Icon(Icons.warning_amber_rounded, size: 20, color: Colors.red[600]),
+            ),
+            const SizedBox(width: 12),
+            const Text('Confirmar eliminación',
+                style:
+                    TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+          ],
+        ),
+        content: const Text(
+          'Esta acción es irreversible. El expediente y todos los datos del paciente serán eliminados permanentemente.',
+          style: TextStyle(fontSize: 14, color: Color(0xFF4A5568)),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Rechazar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: FilledButton.styleFrom(
+              backgroundColor: Colors.red[700],
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
+            ),
+            child: const Text('Eliminar definitivamente'),
+          ),
+        ],
+      ),
+    );
+
+    if (secondConfirm == true && mounted) {
       await _deletePatient(patient);
     }
   }
@@ -625,7 +919,7 @@ class _PatientListScreenState extends State<PatientListScreen> {
                             crossAxisCount: isDesktop ? 3 : 2,
                             mainAxisSpacing: 10,
                             crossAxisSpacing: 10,
-                            mainAxisExtent: 168,
+                            mainAxisExtent: 178,
                           ),
                           itemBuilder: (context, index) => _buildPatientCard(
                             _filteredPatients[index],
@@ -804,16 +1098,23 @@ class _PatientListScreenState extends State<PatientListScreen> {
                         ],
                       ),
                     ),
-                    if (!isAdmin) ...[
-                      const SizedBox(height: 4),
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
+                    const SizedBox(height: 4),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _buildActionBtn(
+                          icon: Icons.info_outline,
+                          color: const Color(0xFF3B5BDB),
+                          tooltip: 'Ver datos demográficos',
+                          onTap: () => _showDemographicsDialog(patient),
+                        ),
+                        if (!isAdmin) ...[
+                          const SizedBox(width: 2),
                           _buildActionBtn(
                             icon: Icons.edit_outlined,
                             color: const Color(0xFF10B981),
-                            tooltip: 'Editar',
-                            onTap: () => _navigateToForm(patient: patient),
+                            tooltip: 'Editar datos demográficos',
+                            onTap: () => _showEditDemographicsWarning(patient),
                           ),
                           const SizedBox(width: 2),
                           _buildActionBtn(
@@ -823,8 +1124,8 @@ class _PatientListScreenState extends State<PatientListScreen> {
                             onTap: () => _confirmDelete(patient),
                           ),
                         ],
-                      ),
-                    ],
+                      ],
+                    ),
                   ],
                 ),
               ],
@@ -900,15 +1201,28 @@ class _PatientListScreenState extends State<PatientListScreen> {
                         size: 16, color: Color(0xFF10B981)),
                     const SizedBox(width: 8),
                     Expanded(
-                      child: Text(
-                        'EHR: ${patient.ehrId}',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF10B981),
-                        ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Expediente clínico',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF10B981),
+                              letterSpacing: 0.3,
+                            ),
+                          ),
+                          Text(
+                            patient.ehrId!,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: const Color(0xFF10B981).withValues(alpha: 0.75),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                     const SizedBox(width: 4),

@@ -1,0 +1,10 @@
+$kind: collection
+name: Hospital FHIR System — La Clemencia
+description: Colección completa de endpoints del sistema hospitalario FHIR + EHRbase
+variables:
+  base_fhir: http://localhost:8080/fhir
+  base_api: http://localhost:8080/api
+  base_ehr: http://localhost:8081/ehrbase/rest/openehr/v1
+  token: ""
+  patient_id: ""
+  ehr_id: ""

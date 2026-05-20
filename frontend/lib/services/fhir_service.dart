@@ -6,7 +6,6 @@ import '../models/fhir_patient.dart';
 import '../models/fhir_appointment.dart';
 import '../models/fhir_encounter.dart';
 import '../models/fhir_practitioner.dart';
-import '../models/fhir_medication_request.dart';
 import '../models/fhir_antecedent.dart';
 import '../models/user.dart';
 
@@ -522,7 +521,7 @@ class FhirService {
 
       final response = await http.post(
         Uri.parse(
-            '$apiBaseUrl/virtual-ehr/patients/$fhirPatientId/encounters/composition'),
+            '$apiBaseUrl/virtual-ehr/patients/$fhirPatientId/ehr-composition'),
         headers: headers,
         body: json.encode(body),
       );
@@ -943,210 +942,6 @@ class FhirService {
     }
   }
 
-  // MedicationRequest methods
-  Future<List<FhirMedicationRequest>> getMedicationRequests({
-    int count = 100,
-    String? status,
-  }) async {
-    try {
-      final headers = await _getHeaders();
-      final user = await _getCurrentUser();
-
-      var url = '$baseUrl/MedicationRequest?_count=$count';
-
-      if (user != null && !user.isAdmin) {
-        final practitionerId = await _getCurrentPractitionerId();
-        if (practitionerId != null) {
-          url += '&requester=Practitioner/$practitionerId';
-        }
-      }
-
-      if (status != null && status != 'all') {
-        url += '&status=$status';
-      }
-
-      final response = await http.get(
-        Uri.parse(url),
-        headers: headers,
-      );
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        final List entries = data['entry'] ?? [];
-        return entries
-            .map((e) => FhirMedicationRequest.fromJson(e['resource']))
-            .toList();
-      }
-      return [];
-    } catch (e) {
-      throw Exception('Error al obtener recetas: $e');
-    }
-  }
-
-  Future<List<FhirMedicationRequest>> searchMedicationRequestsByPatient(
-      String patientId) async {
-    try {
-      final headers = await _getHeaders();
-      final response = await http.get(
-        Uri.parse('$baseUrl/MedicationRequest?subject=Patient/$patientId'),
-        headers: headers,
-      );
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        final List entries = data['entry'] ?? [];
-        return entries
-            .map((e) => FhirMedicationRequest.fromJson(e['resource']))
-            .toList();
-      }
-      return [];
-    } catch (e) {
-      throw Exception('Error al buscar recetas del paciente: $e');
-    }
-  }
-
-  Future<List<FhirMedicationRequest>> getMedicationRequestsByGroupIdentifier(
-    String groupIdentifier, {
-    String? patientId,
-    String? excludeMedicationId,
-    int count = 300,
-  }) async {
-    try {
-      final all = await getMedicationRequests(count: count);
-      return all.where((medication) {
-        if (medication.groupIdentifier != groupIdentifier) {
-          return false;
-        }
-        if (patientId != null && medication.patientId != patientId) {
-          return false;
-        }
-        if (excludeMedicationId != null &&
-            medication.id == excludeMedicationId) {
-          return false;
-        }
-        return true;
-      }).toList();
-    } catch (e) {
-      throw Exception('Error al cargar medicamentos agrupados: $e');
-    }
-  }
-
-  Future<FhirMedicationRequest?> getMedicationRequest(String id) async {
-    try {
-      final headers = await _getHeaders();
-      final response = await http.get(
-        Uri.parse('$baseUrl/MedicationRequest/$id'),
-        headers: headers,
-      );
-
-      if (response.statusCode == 200) {
-        return FhirMedicationRequest.fromJson(json.decode(response.body));
-      }
-      return null;
-    } catch (e) {
-      throw Exception('Error al obtener receta: $e');
-    }
-  }
-
-  Future<FhirMedicationRequest> createMedicationRequest(
-      FhirMedicationRequest medicationRequest) async {
-    final user = await _getCurrentUser();
-
-    if (user != null && user.isAdmin) {
-      throw Exception('Los administradores no pueden crear recetas médicas');
-    }
-
-    try {
-      final practitionerId = await _getCurrentPractitionerId();
-      if (practitionerId == null) {
-        throw Exception('No se pudo obtener el ID del médico');
-      }
-
-      final medicationRequestWithPractitioner = FhirMedicationRequest(
-        status: medicationRequest.status,
-        intent: medicationRequest.intent,
-        medication: medicationRequest.medication,
-        patientId: medicationRequest.patientId,
-        patientName: medicationRequest.patientName,
-        practitionerId: practitionerId,
-        practitionerName: user?.fullName,
-        dosageInstruction: medicationRequest.dosageInstruction,
-        quantityValue: medicationRequest.quantityValue,
-        daysSupply: medicationRequest.daysSupply,
-        authoredOn: medicationRequest.authoredOn ?? DateTime.now(),
-        note: medicationRequest.note,
-        groupIdentifier: medicationRequest.groupIdentifier,
-      );
-
-      final headers = await _getHeaders();
-      final response = await http.post(
-        Uri.parse('$baseUrl/MedicationRequest'),
-        headers: headers,
-        body: json.encode(medicationRequestWithPractitioner.toFhirJson()),
-      );
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        return FhirMedicationRequest.fromJson(json.decode(response.body));
-      } else {
-        throw Exception(
-            'Error al crear receta: ${response.statusCode} - ${response.body}');
-      }
-    } catch (e) {
-      throw Exception('Error al crear receta: $e');
-    }
-  }
-
-  Future<FhirMedicationRequest> updateMedicationRequest(
-      FhirMedicationRequest medicationRequest) async {
-    final user = await _getCurrentUser();
-
-    if (user != null && user.isAdmin) {
-      throw Exception('Los administradores no pueden editar recetas médicas');
-    }
-
-    try {
-      final headers = await _getHeaders();
-      final response = await http.put(
-        Uri.parse('$baseUrl/MedicationRequest/${medicationRequest.id}'),
-        headers: headers,
-        body: json.encode(medicationRequest.toFhirJson()),
-      );
-
-      if (response.statusCode == 200) {
-        return FhirMedicationRequest.fromJson(json.decode(response.body));
-      } else {
-        throw Exception(
-            'Error al actualizar receta: ${response.statusCode} - ${response.body}');
-      }
-    } catch (e) {
-      throw Exception('Error al actualizar receta: $e');
-    }
-  }
-
-  Future<void> deleteMedicationRequest(String id) async {
-    final user = await _getCurrentUser();
-
-    if (user != null && user.isAdmin) {
-      throw Exception('Los administradores no pueden eliminar recetas médicas');
-    }
-
-    try {
-      final headers = await _getHeaders();
-      final response = await http.delete(
-        Uri.parse('$baseUrl/MedicationRequest/$id'),
-        headers: headers,
-      );
-
-      if (response.statusCode != 200 &&
-          response.statusCode != 204 &&
-          response.statusCode != 404) {
-        throw Exception('Error al eliminar receta: ${response.statusCode}');
-      }
-    } catch (e) {
-      throw Exception('Error al eliminar receta: $e');
-    }
-  }
-
   // ==================== ANTECEDENT METHODS ====================
 
   /// Obtiene todos los antecedentes de un paciente
@@ -1269,6 +1064,38 @@ class FhirService {
       }
     } catch (e) {
       throw Exception('Error al guardar antecedente: $e');
+    }
+  }
+
+  /// Dual-write: guarda antecedente en EHRbase (best effort)
+  Future<void> saveAntecedentesEhr({
+    required String fhirPatientId,
+    required String ehrId,
+    required String tipoAntecedente,
+    required String contenido,
+    String? composerName,
+  }) async {
+    final url = '$apiBaseUrl/virtual-ehr/patients/$fhirPatientId/antecedentes-composition';
+    print('🔵 EHRbase antecedente write — url: $url');
+    print('🔵 ehrId: $ehrId | tipo: $tipoAntecedente | composer: $composerName');
+    try {
+      final headers = await _getApiHeaders();
+      final body = <String, dynamic>{
+        'ehrId': ehrId,
+        'tipoAntecedente': tipoAntecedente,
+        'contenido': contenido,
+      };
+      if (composerName != null && composerName.isNotEmpty) {
+        body['composerName'] = composerName;
+      }
+      final response = await http.post(
+        Uri.parse(url),
+        headers: headers,
+        body: json.encode(body),
+      );
+      print('✅ EHRbase antecedente response: ${response.statusCode} — ${response.body}');
+    } catch (e) {
+      print('❌ EHRbase antecedente write failed: $e');
     }
   }
 

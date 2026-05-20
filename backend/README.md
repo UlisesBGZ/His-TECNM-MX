@@ -1,102 +1,91 @@
-# Backend - Sistema Hospitalario FHIR
+# Backend - Sistema Hospitalario La Clemencia
 
-Backend basado en **HAPI FHIR 8.6.1** con sistema de autenticación JWT personalizado.
+Backend basado en **HAPI FHIR 8.6.1** + **EHRbase 2.6.0** con autenticación JWT personalizada.
 
 ## Stack Tecnológico
 
 - **Framework**: Spring Boot 3.5.9
-- **FHIR Server**: HAPI FHIR 8.6.1
-- **Java**: 21.0.10 (mínimo 17)
+- **FHIR Server**: HAPI FHIR 8.6.1 (HL7 FHIR R4)
+- **Servidor openEHR**: EHRbase 2.6.0 + openEHR SDK 2.30.0
+- **Java**: 21 (mínimo 17)
 - **Build Tool**: Maven Wrapper 3.3.2 (incluido, NO requiere instalación global)
-- **Base de Datos**: PostgreSQL 16 (Docker)
-- **Autenticación**: JWT (JJWT 0.12.6) + BCrypt
-- **Testing**: JUnit 5 + Mockito
+- **BD FHIR/Auth**: PostgreSQL 16 (puerto 5432)
+- **BD EHRbase**: ehrbase/ehrbase-v2-postgres:16.2 (puerto 5434)
+- **Autenticación**: JWT (JJWT 0.12.6) + jBCrypt 0.4
 
-## Arquitectura (3 Capas)
+## Arquitectura
 
 ```
-┌─────────────┐
-│  Controller │ ← Endpoints HTTP REST (/api/auth, /api/users, /fhir)
-└──────┬──────┘
-       │
-┌──────▼──────┐
-│   Service   │ ← Lógica de negocio, validaciones, BCrypt, JWT
-└──────┬──────┘
-       │
-┌──────▼──────┐
-│ Repository  │ ← Spring Data JPA (acceso a PostgreSQL)
-└──────┬──────┘
-       │
-┌──────▼──────┐
-│  PostgreSQL │ ← Base de datos (Docker)
-└─────────────┘
+Flutter App
+    │  HTTP + JWT (:8080)
+    ▼
+Spring Boot (HAPI FHIR JPA Server)
+    │                    │
+    │ FHIR R4 JPA        │ openEHR SDK / REST
+    ▼                    ▼
+PostgreSQL:5432     EHRbase:8081
+(FHIR + Auth)           │
+                         │ JDBC
+                         ▼
+                    PostgreSQL:5434
+                    (Datos clínicos)
 ```
+
+**Separación de datos**:
+- **FHIR/Auth (5432)**: datos demográficos del paciente, credenciales de usuarios
+- **EHRbase (5434)**: encuentros clínicos, antecedentes, signos vitales
 
 ## Estructura del Código
 
 ```
 backend/
 ├── src/main/java/ca/uhn/fhir/jpa/starter/
-│   ├── Application.java                    # Entry point
-│   └── auth/                                # Sistema de autenticación custom
+│   ├── Application.java
+│   ├── auth/                                # Autenticación JWT personalizada
+│   │   ├── controller/
+│   │   │   ├── AuthController.java          # POST /api/auth/login, /signup, /admin
+│   │   │   └── UserController.java          # GET/PUT/DELETE /api/users/*
+│   │   ├── service/AuthService.java
+│   │   ├── repository/UserRepository.java
+│   │   ├── model/User.java
+│   │   └── util/JwtUtil.java
+│   └── virtualehr/                          # Integración FHIR + EHRbase
 │       ├── controller/
-│       │   ├── AuthController.java         # POST /api/auth/login, /signup, /validate
-│       │   └── UserController.java         # GET/PUT/DELETE /api/users/*
+│       │   └── VirtualEhrPatientController.java  # /api/virtual-ehr/patients
 │       ├── service/
-│       │   ├── AuthService.java            # Lógica JWT, BCrypt, validaciones
-│       │   └── UserService.java            # CRUD usuarios, toggle status
-│       ├── repository/
-│       │   └── UserRepository.java         # Spring Data JPA
-│       ├── model/
-│       │   ├── User.java                   # Entidad JPA
-│       │   └── Role.java                   # Enum: USER, ADMIN, DOCTOR, NURSE
-│       ├── dto/
-│       │   ├── LoginRequest.java
-│       │   ├── SignupRequest.java
-│       │   ├── JwtResponse.java
-│       │   └── UserResponse.java
+│       │   ├── PatientOrchestratorService.java   # Alta unificada (FHIR + EHRbase)
+│       │   ├── EhrbaseCompositionService.java    # Encuentros → EHRbase
+│       │   ├── EhrbaseAntecedentesService.java   # Antecedentes → EHRbase
+│       │   └── FullPatientRecordService.java     # Agrega FHIR + AQL EHRbase
 │       ├── config/
-│       │   └── SecurityConfig.java         # CORS y configuración
-│       └── util/
-│           └── JwtUtil.java                # Generación y validación JWT
-│
-├── src/test/java/.../auth/
-│   ├── AuthControllerTest.java            # 12 tests ✅
-│   └── UserController Test.java            # 11 tests ✅
+│       │   └── EhrbaseTemplateUploader.java      # Carga .opt al arrancar
+│       └── dto/
+│           ├── CreatePatientRequestDto.java
+│           ├── SaveEncounterCompositionRequestDto.java
+│           ├── SaveAntecedentesCompositionRequestDto.java
+│           └── FullPatientRecordResponseDto.java
 │
 ├── src/main/resources/
-│   ├── application.yaml                    # Configuración principal
-│   └── init-admin.sql                      # Usuario admin inicial
+│   ├── application.yaml
+│   └── openehr/templates/                   # Templates .opt (consulta_clinica, antecedentes)
 │
-├── docker-compose.yml                      # PostgreSQL 16
-├── pom.xml                                 # Dependencias Maven
-├── mvnw.cmd                                # Maven Wrapper (Windows)
-└── .mvn/wrapper/
-    └── maven-wrapper.jar                   # JAR del wrapper (incluido)
+├── docker-compose.yml                       # PostgreSQL FHIR + EHRbase + PostgreSQL EHRbase
+├── pom.xml
+└── mvnw.cmd
 ```
 
 ## Inicio Rápido
 
-### 1. Iniciar Base de Datos
+Usar el script de arranque en la raíz del proyecto:
 
 ```powershell
-cd backend
-docker-compose up -d
+.\iniciar-backend.bat
 ```
 
-Esto inicia PostgreSQL 16 en el puerto **5432**:
-- Database: `fhirdb`
-- Usuario: `admin`
-- Contraseña: `admin`
+Este script levanta Docker Compose (PostgreSQL FHIR + EHRbase + PostgreSQL EHRbase) y luego inicia Spring Boot. Al arrancar, `EhrbaseTemplateUploader` carga los templates openEHR en EHRbase automáticamente.
 
-### 2. Iniciar Backend
-
-```powershell
-cd backend
-.\mvnw.cmd spring-boot:run -Pboot
-```
-
-El servidor estará disponible en: **http://localhost:8080**
+El servidor estará disponible en: **http://localhost:8080**  
+EHRbase Swagger UI: **http://localhost:8081/ehrbase/swagger-ui/index.html**
 
 ### 3. Verificar que Funciona
 
@@ -112,62 +101,31 @@ curl http://localhost:8080/api/auth/validate
 
 ### Autenticación (`/api/auth`)
 
-#### POST `/api/auth/login` - Iniciar sesión
-```json
-{
-  "username": "admin",
-  "password": "admin123"
-}
-```
-**Respuesta:**
-```json
-{
-  "token": "eyJhbGciOiJIUzUxMiJ9...",
-  "type": "Bearer",
-  "username": "admin",
-  "email": "admin@hospital.com",
-  "roles": ["ADMIN", "USER"]
-}
-```
+- `POST /api/auth/login` — Login, devuelve JWT
+- `POST /api/auth/signup` — Registro de usuario
+- `GET /api/auth/validate` — Validar token (Header: `Authorization: Bearer <token>`)
+- `POST /api/auth/admin` — Crear cuenta administrador
 
-#### POST `/api/auth/signup` - Registrar usuario
-```json
-{
-  "username": "doctor1",
-  "email": "doctor1@hospital.com",
-  "password": "password123",
-  "firstName": "Juan",
-  "lastName": "Pérez",
-  "isAdmin": false
-}
-```
+### Gestión de Usuarios (`/api/users`) — Solo ADMIN
 
-#### GET `/api/auth/validate` - Validar token
-**Headers:** `Authorization: Bearer <token>`
+- `GET /api/users` — Listar todos los usuarios
+- `GET /api/users/{id}` — Obtener usuario por ID
+- `DELETE /api/users/{id}` — Eliminar usuario
+- `PUT /api/users/{id}/toggle-status` — Habilitar/Deshabilitar usuario
 
-#### POST `/api/auth/create-admin` - Crear administrador
-Crea usuario con rol ADMIN.
+### Virtual EHR (`/api/virtual-ehr/patients`)
 
-### Gestión de Usuarios (`/api/users`) - Solo ADMIN
+- `POST /api/virtual-ehr/patients` — Crear paciente (FHIR + EHRbase simultáneo)
+- `GET /api/virtual-ehr/patients/{id}/linkage` — Verificar vínculo FHIR–EHRbase
+- `POST /api/virtual-ehr/patients/{id}/ehr-composition` — Guardar encuentro clínico en EHRbase
+- `POST /api/virtual-ehr/patients/{id}/antecedentes-composition` — Guardar antecedente en EHRbase
+- `GET /api/virtual-ehr/patients/{id}/full-record` — Expediente completo (FHIR + AQL EHRbase)
 
-#### GET `/api/users` - Listar todos los usuarios
-**Headers:** `Authorization: Bearer <admin-token>`
+### FHIR R4 (`/fhir`)
 
-#### GET `/api/users/{id}` - Obtener usuario por ID
-
-#### DELETE `/api/users/{id}` - Eliminar usuario
-
-#### PUT `/api/users/{id}/toggle-status` - Habilitar/Deshabilitar usuario
-
-### FHIR Resources (`/fhir`)
-
-- `GET /fhir/Patient` - Listar pacientes
-- `GET /fhir/Patient/{id}` - Obtener paciente
-- `POST /fhir/Patient` - Crear paciente
-- `PUT /fhir/Patient/{id}` - Actualizar paciente
-- `DELETE /fhir/Patient/{id}` - Eliminar paciente
-
-*(Igual para Practitioner, Observation, Appointment, etc.)*
+- `GET/POST /fhir/Patient` — Recursos de paciente
+- `GET/POST /fhir/Encounter` — Encuentros clínicos
+- `GET/POST /fhir/Observation` — Observaciones
 
 ## Testing
 
@@ -308,15 +266,16 @@ docker run -p 8080:8080 hospital-fhir-backend
 
 ## Tecnologías y Librerías
 
-- **HAPI FHIR**: Framework FHIR para Java
-- **Spring Boot**: Framework web y DI
-- **Spring Data JPA**: ORM y acceso a datos
-- **PostgreSQL**: Base de datos relacional
-- **JJWT**: Librería JWT para Java
-- **BCrypt**: Hash de contraseñas
-- **Lombok**: Reducción de boilerplate
-- **JUnit 5**: Testing
-- **Mockito**: Mocking para tests
+- **HAPI FHIR 8.6.1**: Framework FHIR R4 para Java
+- **EHRbase 2.6.0**: Servidor openEHR (composiciones clínicas)
+- **openEHR SDK 2.30.0**: Clases generadas a partir de templates .opt
+- **Spring Boot 3.5.9**: Framework web y DI
+- **Spring Data JPA**: ORM y acceso a datos FHIR/Auth
+- **PostgreSQL 16**: BD relacional (FHIR+Auth en :5432, EHRbase en :5434)
+- **JJWT 0.12.6**: Librería JWT para Java
+- **jBCrypt 0.4**: Hash de contraseñas
+- **Apache HttpClient**: Llamadas HTTP a EHRbase (AQL)
+- **Jackson**: Serialización JSON
 
 ## Documentación Adicional
 

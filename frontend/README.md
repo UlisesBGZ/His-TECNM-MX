@@ -1,6 +1,6 @@
-﻿# Frontend - Sistema Hospitalario FHIR
+﻿# Frontend - Sistema Hospitalario La Clemencia
 
-Aplicación Flutter multiplataforma (Web + Android) para el sistema hospitalario FHIR.
+Aplicación Flutter web para el sistema hospitalario con expediente clínico electrónico.
 
 ## Stack Tecnológico
 
@@ -16,65 +16,50 @@ Aplicación Flutter multiplataforma (Web + Android) para el sistema hospitalario
 ```
 frontend/
 ├── lib/
-│   ├── main.dart                           # Entry point
+│   ├── main.dart                                  # Entry point
 │   ├── config/
-│   │   └── api_config.dart                 # URLs dinámicas (web/móvil)
+│   │   └── api_config.dart                        # URLs (localhost:8080)
 │   ├── providers/
-│   │   └── auth_provider.dart              # Estado de autenticación
+│   │   └── auth_provider.dart                     # Estado de autenticación
 │   ├── services/
-│   │   ├── auth_service.dart               # API de autenticación
-│   │   └── fhir_service.dart               # API FHIR
+│   │   ├── auth_service.dart                      # Login, signup
+│   │   └── fhir_service.dart                      # Todos los llamados HTTP al backend
 │   ├── models/
-│   │   ├── auth_models.dart                # User, LoginRequest, etc.
-│   │   ├── fhir_patient.dart               # Modelo Patient
-│   │   ├── fhir_practitioner.dart          # Modelo Practitioner
-│   │   └── fhir_appointment.dart           # Modelo Appointment
+│   │   ├── auth_models.dart                       # User, LoginRequest, etc.
+│   │   ├── fhir_patient.dart                      # Modelo Patient
+│   │   └── fhir_encounter.dart                    # Modelo Encounter + VitalsData
 │   └── screens/
-│       ├── login_screen.dart               # Pantalla de login
-│       ├── home_screen.dart                # Pantalla principal
-│       ├── patient_list_screen.dart        # Lista de pacientes
-│       ├── patient_form_screen.dart        # Crear/editar paciente
-│       ├── practitioner_list_screen.dart   # Lista de médicos
-│       └── appointment_list_screen.dart    # Lista de citas
+│       ├── login_screen.dart                      # Pantalla de login
+│       ├── signup_screen.dart                     # Registro de usuario
+│       ├── home_screen.dart                       # Pantalla principal
+│       ├── patient_list_screen.dart               # Lista de pacientes
+│       ├── patient_form_screen.dart               # Crear/editar paciente
+│       ├── patient_clinical_view_screen.dart      # Expediente clínico completo
+│       ├── encounter_list_screen.dart             # Lista de encuentros clínicos
+│       ├── encounter_form_screen.dart             # Registrar encuentro clínico
+│       └── antecedent_form_dialog.dart            # Captura de antecedentes
 │
-├── test/
-│   ├── services/
-│   │   ├── auth_service_test.dart         # 12 tests ✅
-│   │   └── fhir_service_test.dart         # 11 tests ✅
-│   └── widget_test.dart                    # 2 tests ✅
-│
-├── pubspec.yaml                            # Dependencias
-├── update-ip.ps1                           # Script para actualizar IP de red
-└── android/                                # Configuración Android
+├── pubspec.yaml                                   # Dependencias
+└── web/                                           # Configuración web
 ```
 
 ## Inicio Rápido
 
-### 1. Instalar Dependencias
+Usar el script de arranque en la raíz del proyecto:
 
-```bash
-flutter pub get
+```powershell
+.\iniciar-frontend.bat
 ```
 
-### 2. Ejecutar en Web (Chrome)
+O manualmente:
 
 ```bash
+cd frontend
+flutter pub get
 flutter run -d chrome
 ```
 
-La aplicación se abrirá automáticamente en Chrome en `http://localhost:*`
-
-### 3. Ejecutar en Android
-
-**Importante**: Primero actualiza tu IP de red:
-
-```powershell
-# Windows
-.\update-ip.ps1
-
-# Luego ejecuta
-flutter run
-```
+La aplicación se abrirá en Chrome en `http://localhost:*`. El backend debe estar corriendo en el puerto 8080.
 
 ## Configuración Dinámica de Red
 
@@ -109,37 +94,40 @@ El script `update-ip.ps1` obtiene automáticamente tu IP local y actualiza:
 ## Funcionalidades
 
 ### Autenticación
-- ✅ Login con usuario y contraseña
-- ✅ Almacenamiento seguro del token JWT
-- ✅ Validación automática del token
+- ✅ Login con usuario y contraseña (soporta Enter para submit)
+- ✅ Registro de cuenta nueva
+- ✅ Almacenamiento seguro del token JWT (SharedPreferences)
 - ✅ Cierre de sesión
 - ✅ Estado de autenticación global (Provider)
 
 ### Gestión de Pacientes
 - ✅ Lista de pacientes con búsqueda
-- ✅ Ver detalles de paciente
-- ✅ Crear nuevo paciente
+- ✅ Crear nuevo paciente (alta unificada FHIR + EHRbase)
 - ✅ Editar paciente existente
-- ✅ Eliminar paciente (con confirmación)
-- ✅ **Actualización instantánea** al crear/editar
+- ✅ Expediente clínico completo del paciente
 
-### Gestión de Médicos
-- ✅ Lista de profesionales de salud
-- ✅ Ver detalles de médico
-- ✅ Filtros por especialidad
+### Expediente Clínico (`patient_clinical_view_screen.dart`)
+- ✅ Datos demográficos del paciente (de FHIR)
+- ✅ Historial de encuentros clínicos con signos vitales (de EHRbase vía AQL)
+- ✅ Antecedentes clínicos (heredofamiliar, no patológico, gineco-obstétrico)
+- ✅ Indicador de vínculo FHIR–EHRbase
 
-### Gestión de Citas
-- ✅ Lista de citas programadas
-- ✅ Detalles de cita (paciente, médico, fecha)
-- ✅ Estado de la cita (pendiente, confirmada, cancelada)
+### Encuentros Clínicos
+- ✅ Lista de encuentros con filtro por mes/año y búsqueda
+- ✅ Registro de encuentro con motivo, diagnóstico y signos vitales
+- ✅ Escritura dual: FHIR Encounter + composición EHRbase
+- ✅ Estados: pendiente, activa, finalizada
+
+### Antecedentes Clínicos
+- ✅ Captura de antecedentes heredofamiliares, no patológicos y gineco-obstétricos
+- ✅ Escritura dual: actualiza FHIR Patient + composición EHRbase
 
 ### UI/UX
-- ✅ Material Design 3
-- ✅ Tema personalizado (azul/morado)
-- ✅ Animaciones suaves
+- ✅ Material Design 3 con tema azul (#3B5BDB)
+- ✅ Animaciones suaves (FadeIn, SlideTransition, AnimatedSize)
 - ✅ Indicadores de carga
 - ✅ Manejo de errores con SnackBars
-- ✅ Responsive design
+- ✅ Diseño responsivo
 
 ## Credenciales por Defecto
 

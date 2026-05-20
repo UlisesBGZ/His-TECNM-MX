@@ -1,0 +1,8 @@
+$kind: http-request
+description: "Cambia {{patient_id}} por el ID numérico (ej: 1551)"
+url: "{{base_fhir}}/Patient/{{patient_id}}"
+method: GET
+headers:
+  Authorization: Bearer {{token}}
+  Accept: application/fhir+json
+order: 3000

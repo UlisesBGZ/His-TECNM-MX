@@ -113,16 +113,6 @@ class _PatientFormScreenState extends State<PatientFormScreen> {
   Future<void> _savePatient() async {
     if (!_formKey.currentState!.validate()) return;
 
-    if (_selectedBirthDate == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('La fecha de nacimiento es requerida'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
     setState(() => _isSaving = true);
 
     try {
@@ -185,10 +175,19 @@ class _PatientFormScreenState extends State<PatientFormScreen> {
   String? _requiredField(String? value, String message) =>
       (value == null || value.trim().isEmpty) ? message : null;
 
+  String? _validateName(String? value, String fieldName) {
+    if (value == null || value.trim().isEmpty) return '$fieldName es requerido';
+    if (!RegExp(r'^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s]+$').hasMatch(value.trim())) {
+      return '$fieldName solo debe contener letras';
+    }
+    return null;
+  }
+
   String? _validatePhone(String? value) {
     if (value == null || value.trim().isEmpty) return null;
-    if (!RegExp(r'^[0-9]{10,15}$').hasMatch(value.trim())) {
-      return 'El teléfono debe tener entre 10 y 15 dígitos';
+    final digits = value.trim().replaceAll(RegExp(r'[\s\-\(\)]'), '');
+    if (!RegExp(r'^[0-9]{10,15}$').hasMatch(digits)) {
+      return 'Debe tener entre 10 y 15 dígitos';
     }
     return null;
   }
@@ -198,7 +197,7 @@ class _PatientFormScreenState extends State<PatientFormScreen> {
       return 'El código postal es requerido';
     }
     if (!RegExp(r'^[0-9]{5}$').hasMatch(value.trim())) {
-      return 'El código postal debe tener 5 dígitos';
+      return 'Deben ser exactamente 5 dígitos';
     }
     return null;
   }
@@ -206,7 +205,7 @@ class _PatientFormScreenState extends State<PatientFormScreen> {
   String? _validateEmail(String? value) {
     if (value == null || value.trim().isEmpty) return null;
     if (!RegExp(r'^[\w.+-]+@([\w-]+\.)+[\w-]{2,}$').hasMatch(value.trim())) {
-      return 'Correo inválido';
+      return 'Formato de correo inválido';
     }
     return null;
   }
@@ -307,8 +306,7 @@ class _PatientFormScreenState extends State<PatientFormScreen> {
                             label: 'Nombre(s) *',
                             icon: Icons.person_outline,
                             textCapitalization: TextCapitalization.words,
-                            validator: (v) =>
-                                _requiredField(v, 'El nombre es requerido'),
+                            validator: (v) => _validateName(v, 'El nombre'),
                           ),
                           const SizedBox(height: 14),
                           Row(
@@ -319,7 +317,7 @@ class _PatientFormScreenState extends State<PatientFormScreen> {
                                   label: 'Apellido Paterno *',
                                   textCapitalization: TextCapitalization.words,
                                   validator: (v) =>
-                                      _requiredField(v, 'Requerido'),
+                                      _validateName(v, 'Apellido paterno'),
                                 ),
                               ),
                               const SizedBox(width: 12),
@@ -329,7 +327,7 @@ class _PatientFormScreenState extends State<PatientFormScreen> {
                                   label: 'Apellido Materno *',
                                   textCapitalization: TextCapitalization.words,
                                   validator: (v) =>
-                                      _requiredField(v, 'Requerido'),
+                                      _validateName(v, 'Apellido materno'),
                                 ),
                               ),
                             ],
@@ -347,6 +345,12 @@ class _PatientFormScreenState extends State<PatientFormScreen> {
                                 items: const [
                                   'male', 'female', 'other', 'unknown'
                                 ],
+                                labels: const {
+                                  'male':    'Masculino',
+                                  'female':  'Femenino',
+                                  'other':   'Otro',
+                                  'unknown': 'Desconocido',
+                                },
                                 validator: (v) =>
                                     _requiredField(v, 'El sexo es requerido'),
                                 onChanged: (v) =>
@@ -645,6 +649,7 @@ class _PatientFormScreenState extends State<PatientFormScreen> {
       keyboardType: keyboardType,
       textCapitalization: textCapitalization,
       validator: validator,
+      autovalidateMode: AutovalidateMode.onUserInteraction,
       style: const TextStyle(fontSize: 14, color: Color(0xFF1A1F36)),
       decoration: InputDecoration(
         labelText: label,
@@ -692,11 +697,13 @@ class _PatientFormScreenState extends State<PatientFormScreen> {
     required List<String> items,
     required void Function(String?) onChanged,
     String? Function(String?)? validator,
+    Map<String, String>? labels,
   }) {
     final primary = Theme.of(context).primaryColor;
     return DropdownButtonFormField<String>(
       isExpanded: true,
       value: value,
+      autovalidateMode: AutovalidateMode.onUserInteraction,
       style: const TextStyle(fontSize: 14, color: Color(0xFF1A1F36)),
       decoration: InputDecoration(
         labelText: label,
@@ -729,7 +736,7 @@ class _PatientFormScreenState extends State<PatientFormScreen> {
         ),
       ),
       items: items
-          .map((item) => DropdownMenuItem(value: item, child: Text(item)))
+          .map((item) => DropdownMenuItem(value: item, child: Text(labels?[item] ?? item)))
           .toList(),
       onChanged: onChanged,
       validator: validator,
@@ -739,40 +746,79 @@ class _PatientFormScreenState extends State<PatientFormScreen> {
   // ── Date picker ──────────────────────────────────────────────────────────
 
   Widget _buildDatePicker() {
-    final hasDate = _selectedBirthDate != null;
-    return GestureDetector(
-      onTap: _selectBirthDate,
-      child: Container(
-        padding:
-            const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-        decoration: BoxDecoration(
-          color: const Color(0xFFF8FAFC),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: Colors.grey.shade200),
-        ),
-        child: Row(
+    return FormField<DateTime>(
+      initialValue: _selectedBirthDate,
+      autovalidateMode: AutovalidateMode.onUserInteraction,
+      validator: (_) => _selectedBirthDate == null
+          ? 'La fecha de nacimiento es requerida'
+          : null,
+      builder: (state) {
+        final hasDate = _selectedBirthDate != null;
+        final hasError = state.hasError;
+        final borderColor = hasError
+            ? const Color(0xFFEF4444)
+            : Colors.grey.shade200;
+        final iconColor = hasError
+            ? const Color(0xFFEF4444)
+            : Colors.grey[400];
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(Icons.calendar_today_outlined,
-                size: 18, color: Colors.grey[400]),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                hasDate
-                    ? DateFormat('yyyy-MM-dd').format(_selectedBirthDate!)
-                    : 'Fecha de Nacimiento *',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: hasDate
-                      ? const Color(0xFF1A1F36)
-                      : Colors.grey[500],
+            GestureDetector(
+              onTap: () async {
+                await _selectBirthDate();
+                state.didChange(_selectedBirthDate);
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 14, vertical: 13),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                      color: borderColor,
+                      width: hasError ? 1.5 : 1.0),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.calendar_today_outlined,
+                        size: 18, color: iconColor),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        hasDate
+                            ? DateFormat('dd/MM/yyyy')
+                                .format(_selectedBirthDate!)
+                            : 'Fecha de Nacimiento *',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: hasDate
+                              ? const Color(0xFF1A1F36)
+                              : hasError
+                                  ? const Color(0xFFEF4444)
+                                  : Colors.grey[500],
+                        ),
+                      ),
+                    ),
+                    Icon(Icons.unfold_more_rounded,
+                        size: 18, color: iconColor),
+                  ],
                 ),
               ),
             ),
-            Icon(Icons.unfold_more_rounded,
-                size: 18, color: Colors.grey[400]),
+            if (hasError)
+              Padding(
+                padding: const EdgeInsets.only(left: 14, top: 6),
+                child: Text(
+                  state.errorText!,
+                  style: const TextStyle(
+                      fontSize: 12, color: Color(0xFFEF4444)),
+                ),
+              ),
           ],
-        ),
-      ),
+        );
+      },
     );
   }
 }

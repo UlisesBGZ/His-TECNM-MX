@@ -1,0 +1,25 @@
+$kind: http-request
+description: Guarda datos clínicos del encuentro como composición openEHR en EHRbase. Requiere ehrId (UUID del EHR) y fhirEncounterId.
+url: "{{base_api}}/virtual-ehr/patients/{{patient_id}}/encounters/composition"
+method: POST
+headers:
+  Authorization: Bearer {{token}}
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "ehrId": "{{ehr_id}}",
+      "fhirEncounterId": "{{encounter_id}}",
+      "motivoConsulta": "Dolor de cabeza intenso desde hace 2 días",
+      "padecimientoActual": "El paciente refiere cefalea pulsátil, intensidad 7/10, sin fiebre",
+      "diagnostico": "Migraña sin aura",
+      "presionSistolica": 120,
+      "presionDiastolica": 80,
+      "pulso": 72,
+      "temperatura": 36.5,
+      "peso": 70,
+      "talla": 175,
+      "frecuenciaRespiratoria": 16
+    }
+order: 2000

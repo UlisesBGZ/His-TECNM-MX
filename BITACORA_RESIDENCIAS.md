@@ -727,6 +727,58 @@ docs: Consolidar documentacion en 3 READMEs principales
 
 ---
 
+---
+
+## Mayo 2026
+
+### Mayo 2026 — Integración EHRbase y expediente clínico electrónico
+
+#### Resumen técnico
+
+Se completó la integración openEHR de extremo a extremo sobre la arquitectura existente HAPI FHIR. El sistema ahora opera con **escritura dual**: datos demográficos en FHIR (PostgreSQL:5432) y datos clínicos estructurados en EHRbase (PostgreSQL:5434).
+
+#### Módulos implementados
+
+**1. Orquestación virtual EHR (`PatientOrchestratorService`)**
+- Alta unificada: `POST /api/virtual-ehr/patients` crea el recurso FHIR Patient y el EHR en EHRbase en una sola operación.
+- El `ehrId` de EHRbase se almacena como extensión personalizada en el recurso FHIR Patient (`http://hospital.com/fhir/StructureDefinition/ehr-id`).
+
+**2. Composiciones de encuentros clínicos (`EhrbaseCompositionService`)**
+- Escritura dual: `POST /fhir/Encounter` (FHIR R4) + `POST /api/virtual-ehr/patients/{id}/ehr-composition` (EHRbase).
+- Cada encuentro genera una composición `openEHR-EHR-COMPOSITION.encounter.v1` con signos vitales, motivo y diagnóstico.
+
+**3. Composiciones de antecedentes clínicos (`EhrbaseAntecedentesService`)**
+- Tres tipos de antecedente: HEREDOFAMILIAR, NO_PATOLOGICO, GINECO_OBSTETRICO.
+- Composición base: `openEHR-EHR-COMPOSITION.health_summary.v1`.
+
+**4. Expediente clínico completo (`FullPatientRecordService`)**
+- `GET /api/virtual-ehr/patients/{id}/full-record` agrega datos de FHIR y dos consultas AQL a EHRbase en un solo DTO.
+
+**5. Carga automática de templates (`EhrbaseTemplateUploader`)**
+- Los archivos `.opt` en `src/main/resources/openehr/templates/` se suben a EHRbase al arrancar Spring Boot.
+
+#### Cambios en frontend (Flutter)
+
+- `patient_clinical_view_screen.dart`: Vista del expediente clínico completo con datos demográficos, encuentros y antecedentes.
+- `encounter_form_screen.dart`: Formulario de encuentro con signos vitales, activa la escritura dual.
+- `antecedent_form_dialog.dart`: Diálogo de captura de antecedentes con escritura dual.
+- `encounter_list_screen.dart`: Lista de encuentros con filtro mes/año, búsqueda y chips de signos vitales.
+- `login_screen.dart`: Soporte de Enter para submit del formulario.
+
+#### Limpieza de documentación
+
+- Eliminados 5 archivos MD obsoletos: `SPEC_receta_normativa.md`, `SPEC_validacion_receta_e2e.md`, `backend/PROYECTO_EHRBASE_PROMPT.md`, `REPORTE_RESIDENCIAS_PROFESIONALES.md`, `backend/DESARROLLO_COMPLETO.md`.
+- Actualizados: `README.md`, `backend/README.md`, `frontend/README.md`, `SPEC_requisitos.md`, `SPEC_tareas.md`, `SPEC_uxui.md`, `backend/.github/copilot-instructions.md`.
+- Agregado: `backend/documentacion_tecnica/ARQUITECTURA_INTEGRACION.md` — documento técnico completo con flujos, stack y separación de responsabilidades.
+
+#### Decisiones técnicas
+
+- Módulo de recetas (`MedicationRequest` / Recetas) fue retirado del MVP. Se conservan los recursos FHIR base pero sin UI ni validaciones específicas de receta.
+- Se mantiene Java 21 LTS. Java 25 evaluado pero descartado por riesgo de incompatibilidad con dependencias de HAPI FHIR.
+- SDK openEHR Java existe (`org.ehrbase.openehr.sdk`) pero no se migra la capa HTTP directa de `FullPatientRecordService` (AQL via REST) por ser funcional y sin costo técnico significativo.
+
+---
+
 ## 📝 Plantilla para Días Siguientes
 
 ### [Día], [Fecha]

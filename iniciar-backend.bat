@@ -46,4 +46,5 @@ echo.
 echo ============================================
 echo.
 
-mvnw.cmd spring-boot:run -Pboot
+mvnw.cmd clean spring-boot:run -Pboot
+---

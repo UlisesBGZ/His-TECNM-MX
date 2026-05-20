@@ -1,0 +1,14 @@
+$kind: http-request
+description: Consulta AQL para ver todos los EHRs registrados
+url: "{{base_ehr}}/query/aql"
+method: POST
+headers:
+  Authorization: Basic ZWhyYmFzZTplaHJiYXNl
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "q": "SELECT e/ehr_id/value, e/time_created/value FROM EHR e"
+    }
+order: 3000

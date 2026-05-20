@@ -11,7 +11,7 @@ Permitir operacion clinica y administrativa con friccion minima, mensajes claros
 
 ## Usuarios objetivo
 - Admin: gestiona usuarios y configuracion operativa.
-- Usuario clinico: opera modulos de pacientes, citas, medicamentos y reportes.
+- Usuario clinico: opera modulos de pacientes, encuentros clinicos y expediente clinico.
 
 ## Flujos criticos
 - UX-01 Login: ingreso, error de credenciales y estado de carga visibles.

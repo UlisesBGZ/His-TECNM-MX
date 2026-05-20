@@ -118,13 +118,12 @@ class _PatientClinicalViewScreenState extends State<PatientClinicalViewScreen> {
                   icon: Icons.local_hospital_outlined,
                   title: 'Encuentros',
                   color: _green,
-                  trailing: IconButton(
-                    icon: const Icon(Icons.refresh_outlined,
-                        size: 18, color: Color(0xFF64748B)),
-                    onPressed: _loadEncounters,
-                    tooltip: 'Actualizar',
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
+                  trailing: _HeaderBtn(
+                    icon: Icons.add_rounded,
+                    color: _green,
+                    tooltip: 'Agregar encuentro',
+                    onTap: _navigateToEncounterForm,
+                    filled: true,
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -289,6 +288,7 @@ class _PatientClinicalViewScreenState extends State<PatientClinicalViewScreen> {
             await AntecedentFormDialog.show(
               context: context,
               patientId: widget.patient.id ?? '',
+              ehrId: widget.patient.ehrId,
               type: type,
               initialAntecedent: existing,
               onSaved: (saved) async {
@@ -341,28 +341,86 @@ class _PatientClinicalViewScreenState extends State<PatientClinicalViewScreen> {
                   const Divider(height: 1, color: Color(0xFFF1F5F9)),
               itemBuilder: (_, i) => _buildEncounterTile(_encounters[i]),
             ),
-          const Divider(height: 1, color: Color(0xFFE2E8F0)),
-          InkWell(
-            onTap: _navigateToEncounterForm,
-            borderRadius: const BorderRadius.vertical(bottom: Radius.circular(16)),
-            child: const Padding(
-              padding: EdgeInsets.symmetric(vertical: 14),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.add_circle_outline, size: 16, color: _green),
-                  SizedBox(width: 6),
-                  Text(
-                    'Agregar Encuentro',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: _green,
-                    ),
-                  ),
-                ],
-              ),
+        ],
+      ),
+    );
+  }
+
+  void _showEditWarning(FhirEncounter encounter) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        icon: Container(
+          width: 52,
+          height: 52,
+          decoration: BoxDecoration(
+            color: const Color(0xFFFEF3C7),
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: const Icon(Icons.warning_amber_rounded,
+              size: 28, color: Color(0xFFD97706)),
+        ),
+        title: const Text(
+          'Modificar encuentro',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF1A1F36)),
+        ),
+        content: const Text(
+          'Estás a punto de editar un registro clínico existente.\n\n'
+          'Cualquier cambio que realices se verá reflejado en el historial clínico del paciente y podría afectar la trazabilidad del expediente.\n\n'
+          '¿Deseas continuar?',
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 13, color: Color(0xFF475569), height: 1.5),
+        ),
+        actionsAlignment: MainAxisAlignment.center,
+        actionsPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        actions: [
+          OutlinedButton(
+            onPressed: () => Navigator.pop(ctx),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: const Color(0xFF64748B),
+              side: const BorderSide(color: Color(0xFFE2E8F0)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
             ),
+            child: const Text('Cancelar'),
+          ),
+          const SizedBox(width: 8),
+          FilledButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              final result = await Navigator.push<FhirEncounter?>(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => EncounterFormScreen(
+                    encounter: encounter,
+                    patientId: widget.patient.id ?? '',
+                  ),
+                ),
+              );
+              if (result != null && mounted) {
+                setState(() {
+                  final idx =
+                      _encounters.indexWhere((e) => e.id == result.id);
+                  if (idx != -1) _encounters[idx] = result;
+                });
+              }
+            },
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFFD97706),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            ),
+            child: const Text('Sí, editar'),
           ),
         ],
       ),
@@ -370,15 +428,12 @@ class _PatientClinicalViewScreenState extends State<PatientClinicalViewScreen> {
   }
 
   Widget _buildEncounterTile(FhirEncounter encounter) {
-    final statusColor = _getStatusColor(encounter.status);
-    final statusText = encounter.statusDisplay;
-
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header: date + status badge
+          // Header: date + edit button
           Row(
             children: [
               const Icon(Icons.access_time_outlined,
@@ -393,20 +448,31 @@ class _PatientClinicalViewScreenState extends State<PatientClinicalViewScreen> {
                 ),
               ),
               const Spacer(),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                decoration: BoxDecoration(
-                  color: statusColor.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: statusColor.withValues(alpha: 0.4)),
-                ),
-                child: Text(
-                  statusText,
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: statusColor,
+              GestureDetector(
+                onTap: () => _showEditWarning(encounter),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF1F5F9),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.edit_outlined,
+                          size: 12, color: Color(0xFF64748B)),
+                      SizedBox(width: 4),
+                      Text(
+                        'Editar',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF64748B),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -416,46 +482,22 @@ class _PatientClinicalViewScreenState extends State<PatientClinicalViewScreen> {
           // Motivo
           if (encounter.motivoConsulta != null &&
               encounter.motivoConsulta!.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Icon(Icons.notes_outlined,
-                    size: 13, color: Color(0xFF94A3B8)),
-                const SizedBox(width: 5),
-                Expanded(
-                  child: Text(
-                    encounter.motivoConsulta!,
-                    style: const TextStyle(
-                        fontSize: 13, color: Color(0xFF334155)),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
+            const SizedBox(height: 10),
+            _clinicalField(
+              icon: Icons.notes_outlined,
+              label: 'Motivo de consulta',
+              value: encounter.motivoConsulta!,
             ),
           ],
 
           // Diagnóstico
           if (encounter.diagnostico != null &&
               encounter.diagnostico!.isNotEmpty) ...[
-            const SizedBox(height: 6),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Icon(Icons.assignment_outlined,
-                    size: 13, color: Color(0xFF94A3B8)),
-                const SizedBox(width: 5),
-                Expanded(
-                  child: Text(
-                    encounter.diagnostico!,
-                    style: const TextStyle(
-                        fontSize: 13, color: Color(0xFF334155)),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
+            const SizedBox(height: 8),
+            _clinicalField(
+              icon: Icons.assignment_outlined,
+              label: 'Diagnóstico',
+              value: encounter.diagnostico!,
             ),
           ],
 
@@ -488,6 +530,43 @@ class _PatientClinicalViewScreenState extends State<PatientClinicalViewScreen> {
     );
   }
 
+  Widget _clinicalField({
+    required IconData icon,
+    required String label,
+    required String value,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(icon, size: 12, color: const Color(0xFF94A3B8)),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF94A3B8),
+                letterSpacing: 0.3,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 3),
+        Padding(
+          padding: const EdgeInsets.only(left: 16),
+          child: Text(
+            value,
+            style: const TextStyle(fontSize: 13, color: Color(0xFF334155)),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _vitalChip(String label) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -511,24 +590,85 @@ class _PatientClinicalViewScreenState extends State<PatientClinicalViewScreen> {
       vitals.weight != null ||
       vitals.height != null;
 
-  Color _getStatusColor(String status) {
-    switch (status) {
-      case 'pending':
-        return const Color(0xFFF59E0B);
-      case 'active':
-        return const Color(0xFF3B82F6);
-      case 'finalized':
-        return const Color(0xFF10B981);
-      default:
-        return const Color(0xFF94A3B8);
-    }
-  }
-
   String _formatDate(String dateString) {
     try {
       return DateFormat('dd MMM yyyy').format(DateTime.parse(dateString));
     } catch (_) {
       return dateString;
     }
+  }
+}
+
+// ── Header button ──────────────────────────────────────────────────────────────
+
+class _HeaderBtn extends StatefulWidget {
+  final IconData icon;
+  final Color color;
+  final String tooltip;
+  final VoidCallback onTap;
+  final bool filled;
+
+  const _HeaderBtn({
+    required this.icon,
+    required this.color,
+    required this.tooltip,
+    required this.onTap,
+    this.filled = false,
+  });
+
+  @override
+  State<_HeaderBtn> createState() => _HeaderBtnState();
+}
+
+class _HeaderBtnState extends State<_HeaderBtn> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: widget.tooltip,
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        onEnter: (_) => setState(() => _hovered = true),
+        onExit: (_) => setState(() => _hovered = false),
+        child: GestureDetector(
+          onTap: widget.onTap,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: widget.filled
+                  ? widget.color.withValues(alpha: _hovered ? 0.85 : 1.0)
+                  : widget.color.withValues(alpha: _hovered ? 0.12 : 0.08),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: widget.color.withValues(alpha: widget.filled ? 0 : 0.2),
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  widget.icon,
+                  size: 14,
+                  color: widget.filled ? Colors.white : widget.color,
+                ),
+                if (widget.filled) ...[
+                  const SizedBox(width: 4),
+                  Text(
+                    'Agregar',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: widget.filled ? Colors.white : widget.color,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }

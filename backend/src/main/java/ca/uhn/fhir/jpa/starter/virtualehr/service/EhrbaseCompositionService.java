@@ -21,6 +21,7 @@ import ca.uhn.fhir.jpa.starter.openehr.generated.consultaclinicacomposition.defi
 import ca.uhn.fhir.jpa.starter.openehr.generated.consultaclinicacomposition.definition.StoryHistoryStoryElement;
 import ca.uhn.fhir.jpa.starter.virtualehr.dto.SaveEncounterCompositionRequestDto;
 import com.nedap.archie.rm.generic.PartyIdentified;
+import com.nedap.archie.rm.generic.PartySelf;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -106,6 +107,7 @@ public class EhrbaseCompositionService {
 
         ReasonForEncounterEvaluation eval = new ReasonForEncounterEvaluation();
         eval.setLanguage(Language.ES);
+        eval.setSubject(new PartySelf());
         eval.setPresentingProblem(List.of(problem));
         return eval;
     }
@@ -120,6 +122,7 @@ public class EhrbaseCompositionService {
 
         StoryHistoryObservation obs = new StoryHistoryObservation();
         obs.setLanguage(Language.ES);
+        obs.setSubject(new PartySelf());
         obs.setOriginValue(OffsetDateTime.now());
         obs.setAnyEvent(List.of(event));
         return obs;
@@ -128,6 +131,7 @@ public class EhrbaseCompositionService {
     private ProblemDiagnosisEvaluation buildProblemDiagnosis(String diagnostico) {
         ProblemDiagnosisEvaluation eval = new ProblemDiagnosisEvaluation();
         eval.setLanguage(Language.ES);
+        eval.setSubject(new PartySelf());
         eval.setProblemDiagnosisNameValue(diagnostico);
         return eval;
     }
@@ -146,6 +150,7 @@ public class EhrbaseCompositionService {
 
         BloodPressureObservation obs = new BloodPressureObservation();
         obs.setLanguage(Language.ES);
+        obs.setSubject(new PartySelf());
         obs.setOriginValue(OffsetDateTime.now());
         obs.setAnyEvent(List.of(event));
         return obs;
@@ -159,6 +164,7 @@ public class EhrbaseCompositionService {
 
         PulseHeartBeatObservation obs = new PulseHeartBeatObservation();
         obs.setLanguage(Language.ES);
+        obs.setSubject(new PartySelf());
         obs.setOriginValue(OffsetDateTime.now());
         obs.setAnyEvent(List.of(event));
         return obs;
@@ -172,6 +178,7 @@ public class EhrbaseCompositionService {
 
         BodyTemperatureObservation obs = new BodyTemperatureObservation();
         obs.setLanguage(Language.ES);
+        obs.setSubject(new PartySelf());
         obs.setOriginValue(OffsetDateTime.now());
         obs.setAnyEvent(List.of(event));
         return obs;
@@ -185,6 +192,7 @@ public class EhrbaseCompositionService {
 
         BodyWeightObservation obs = new BodyWeightObservation();
         obs.setLanguage(Language.ES);
+        obs.setSubject(new PartySelf());
         obs.setOriginValue(OffsetDateTime.now());
         obs.setAnyEvent(List.of(event));
         return obs;
@@ -198,6 +206,7 @@ public class EhrbaseCompositionService {
 
         HeightLengthObservation obs = new HeightLengthObservation();
         obs.setLanguage(Language.ES);
+        obs.setSubject(new PartySelf());
         obs.setOriginValue(OffsetDateTime.now());
         obs.setAnyEvent(List.of(event));
         return obs;
@@ -211,6 +220,7 @@ public class EhrbaseCompositionService {
 
         RespirationObservation obs = new RespirationObservation();
         obs.setLanguage(Language.ES);
+        obs.setSubject(new PartySelf());
         obs.setOriginValue(OffsetDateTime.now());
         obs.setAnyEvent(List.of(event));
         return obs;

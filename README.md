@@ -7,19 +7,20 @@ Sistema completo de gestión hospitalaria basado en **HAPI FHIR 8.6.1** con aute
 
 ## 🎯 Descripción del Proyecto
 
-Sistema hospitalario completo que combina:
-- **Backend**: Servidor FHIR estándar HL7 (HAPI FHIR) con sistema de autenticación JWT personalizado
-- **Frontend**: Aplicación Flutter multiplataforma (Web + Android) con UI moderna
-- **Base de Datos**: PostgreSQL 16 en Docker
+Sistema hospitalario MVP que combina:
+- **Backend**: Servidor FHIR R4 (HAPI FHIR) + integración openEHR (EHRbase) con autenticación JWT
+- **Frontend**: Aplicación Flutter web con expediente clínico electrónico
+- **Bases de Datos**: PostgreSQL 16 para FHIR/Auth y PostgreSQL dedicado para EHRbase
 
 ### ¿Qué hace este sistema?
 
-✅ Gestión de **pacientes** (crear, editar, eliminar, buscar)  
-✅ Gestión de **médicos** y profesionales de salud  
-✅ Gestión de **citas médicas**  
+✅ Gestión de **pacientes** (crear, editar, buscar) con registro universal institucional  
+✅ **Expediente clínico completo** — datos demográficos (FHIR) + antecedentes y encuentros (EHRbase)  
+✅ Registro de **encuentros clínicos** con signos vitales, motivo y diagnóstico (escritura dual FHIR + EHRbase)  
+✅ Captura de **antecedentes clínicos** (heredofamiliares, no patológicos, gineco-obstétricos)  
 ✅ Sistema de **autenticación** con roles (Admin, Usuario)  
-✅ API REST estándar **FHIR** (interoperable con otros sistemas de salud)  
-✅ Actualización **instantánea** de datos en la interfaz  
+✅ API REST estándar **FHIR R4** (interoperable con otros sistemas de salud)  
+✅ Consultas **AQL** a EHRbase para lectura de composiciones clínicas  
 
 ## 🚀 Inicio Rápido (Scripts Automáticos)
 
@@ -63,24 +64,23 @@ Esto iniciará automáticamente:
 
 ### Backend
 - **Framework**: Spring Boot 3.5.9
-- **FHIR Server**: HAPI FHIR 8.6.1
-- **Lenguaje**: Java 21.0.10
+- **FHIR Server**: HAPI FHIR 8.6.1 (HL7 FHIR R4)
+- **Servidor openEHR**: EHRbase 2.6.0 + openEHR SDK 2.30.0
+- **Lenguaje**: Java 21 (mínimo 17)
 - **Build**: Maven Wrapper 3.3.2 (incluido, no requiere instalación global)
-- **Base de Datos**: PostgreSQL 16 (Docker)
-- **Autenticación**: JWT (JJWT 0.12.6) + BCrypt
-- **Testing**: JUnit 5 + Mockito (23 tests ✅)
+- **Autenticación**: JWT (JJWT 0.12.6) + BCrypt (jBCrypt 0.4)
 
 ### Frontend
 - **Framework**: Flutter 3.27.3 / Dart 3.6.1
 - **Diseño**: Material Design 3
 - **Estado**: Provider 6.1.2
 - **HTTP**: http 1.2.2
-- **Testing**: flutter_test + Mockito (25 tests ✅)
-- **Plataformas**: Web (Chrome) + Android
+- **Plataformas**: Web (Chrome)
 
 ### Infraestructura
 - **Contenedores**: Docker + Docker Compose
-- **Base de Datos**: PostgreSQL 16
+- **BD FHIR/Auth**: PostgreSQL 16 (puerto 5432)
+- **BD EHRbase**: ehrbase/ehrbase-v2-postgres:16.2 (puerto 5434)
 - **Control de Versiones**: Git + GitHub
 
 ## 📁 Estructura del Proyecto
@@ -94,32 +94,31 @@ Hospital-FHIR-System/
 ├── detener-sistema.bat         # 🛑 Script para detener todo
 ├── COMO_USAR_SCRIPTS.md        # 📖 Guía de scripts
 │
-├── backend/                    # ☕ Backend Spring Boot + HAPI FHIR
+├── backend/                    # ☕ Backend Spring Boot + HAPI FHIR + EHRbase
 │   ├── src/
 │   │   ├── main/java/ca/uhn/fhir/jpa/starter/
 │   │   │   ├── Application.java
-│   │   │   └── auth/           # Sistema de autenticación custom
-│   │   │       ├── controller/ # API REST endpoints
-│   │   │       ├── service/    # Lógica de negocio
-│   │   │       ├── repository/ # Acceso a datos (JPA)
-│   │   │       ├── model/      # Entidades (User, Role)
-│   │   │       └── dto/        # Data Transfer Objects
-│   │   └── test/java/          # Tests unitarios (23 tests ✅)
-│   ├── docker-compose.yml      # PostgreSQL 16
-│   ├── pom.xml                 # Dependencias Maven
-│   ├── mvnw.cmd                # Maven Wrapper
-│   └── README.md               # 📖 Documentación backend
+│   │   │   ├── auth/               # Autenticación JWT personalizada
+│   │   │   └── virtualehr/         # Integración FHIR + EHRbase
+│   │   │       ├── controller/     # /api/virtual-ehr/patients
+│   │   │       ├── service/        # Orquestación, composiciones, expediente
+│   │   │       ├── config/         # Carga de templates openEHR
+│   │   │       └── dto/
+│   │   └── resources/
+│   │       └── openehr/templates/  # Templates .opt de EHRbase
+│   ├── docker-compose.yml          # PostgreSQL FHIR + PostgreSQL EHRbase + EHRbase
+│   ├── pom.xml                     # Dependencias Maven
+│   ├── mvnw.cmd                    # Maven Wrapper
+│   └── README.md                   # 📖 Documentación backend
 │
-├── frontend/                   # 📱 Frontend Flutter
+├── frontend/                   # 📱 Frontend Flutter Web
 │   ├── lib/
 │   │   ├── main.dart
-│   │   ├── config/             # Configuración (URLs dinámicas)
+│   │   ├── config/             # URLs dinámicas
 │   │   ├── providers/          # Estado global (Provider)
-│   │   ├── services/           # Servicios HTTP (auth, FHIR)
+│   │   ├── services/           # fhir_service.dart (todos los llamados HTTP)
 │   │   ├── models/             # Modelos de datos
 │   │   └── screens/            # Pantallas UI
-│   ├── test/                   # Tests (25 tests ✅)
-│   ├── update-ip.ps1           # Script para actualizar IP
 │   ├── pubspec.yaml            # Dependencias Flutter
 │   └── README.md               # 📖 Documentación frontend
 │
@@ -150,61 +149,39 @@ Hospital-FHIR-System/
 
 ### Usuarios (`/api/users`) - Solo Admin
 - `GET /api/users` - Listar usuarios
-- `GET /api/users/{id}` - Obtener usuario
 - `DELETE /api/users/{id}` - Eliminar usuario
 - `PUT /api/users/{id}/toggle-status` - Habilitar/Deshabilitar
 
+### Virtual EHR (`/api/virtual-ehr/patients`)
+- `POST /api/virtual-ehr/patients` - Crear paciente (FHIR + EHRbase)
+- `GET /api/virtual-ehr/patients/{id}/linkage` - Verificar vínculo FHIR–EHRbase
+- `POST /api/virtual-ehr/patients/{id}/ehr-composition` - Guardar encuentro en EHRbase
+- `POST /api/virtual-ehr/patients/{id}/antecedentes-composition` - Guardar antecedente
+- `GET /api/virtual-ehr/patients/{id}/full-record` - Expediente completo (FHIR + AQL)
+
 ### FHIR (`/fhir`) - Estándar HL7 FHIR R4
 - `GET/POST /fhir/Patient` - Gestión de pacientes
-- `GET/POST /fhir/Practitioner` - Gestión de médicos
-- `GET/POST /fhir/Appointment` - Gestión de citas
-- `GET/POST /fhir/Observation` - Gestión de observaciones
+- `GET/POST /fhir/Encounter` - Encuentros clínicos
+- `GET/POST /fhir/Observation` - Observaciones
 
-## 🧪 Testing
+## 🔗 Documentación Adicional
 
-### Backend (Spring Boot)
-```powershell
-cd backend
-.\mvnw.cmd test
-```
-- **AuthControllerTest**: 12 tests ✅
-- **UserControllerTest**: 11 tests ✅
-- **Total**: 23 tests pasando
-
-### Frontend (Flutter)
-```bash
-cd frontend
-flutter test
-```
-- **auth_service_test**: 12 tests ✅
-- **fhir_service_test**: 11 tests ✅
-- **widget_test**: 2 tests ✅
-- **Total**: 25 tests pasando
-
-### Cobertura Total
-**48 tests pasando** (100% de tests funcionales) ✅
+- **[backend/documentacion_tecnica/ARQUITECTURA_INTEGRACION.md](backend/documentacion_tecnica/ARQUITECTURA_INTEGRACION.md)** — Arquitectura detallada, flujos completos, stack de versiones
+- **[backend/README.md](backend/README.md)** — Documentación técnica del backend
+- **[frontend/README.md](frontend/README.md)** — Documentación técnica del frontend
+- **[COMO_USAR_SCRIPTS.md](COMO_USAR_SCRIPTS.md)** — Guía de scripts de arranque
+- **[postman/CONSULTAS_EHRBASE.md](postman/CONSULTAS_EHRBASE.md)** — Guía de consultas AQL a EHRbase
 
 ## ⚙️ Requisitos del Sistema
 
 ### Software Necesario
 
-1. **Java 21** o superior
-   - Descargar: https://adoptium.net/
-   - Verificar: `java -version`
+1. **Java 21** o superior — `java -version`
+2. **Flutter 3.x** — `flutter --version`
+3. **Docker Desktop** (incluye Docker Compose) — `docker --version`
+4. **Git** — `git --version`
 
-2. **Flutter 3.27.3** o superior
-   - Descargar: https://docs.flutter.dev/get-started/install
-   - Verificar: `flutter --version`
-
-3. **Docker Desktop**
-   - Descargar: https://www.docker.com/products/docker-desktop/
-   - Verificar: `docker --version`
-
-4. **Git** (para clonar el repositorio)
-   - Descargar: https://git-scm.com/
-   - Verificar: `git --version`
-
-**Nota**: Maven NO es necesario (Maven Wrapper está incluido)
+**Nota**: Maven NO es necesario (Maven Wrapper incluido). No se requiere instalación de EHRbase; el `docker-compose.yml` del backend lo levanta automáticamente.
 
 ### Clonar el Repositorio
 
@@ -217,23 +194,23 @@ cd Hospital-FHIR-System
 ## 🎨 Características de la Aplicación
 
 ### Backend
-- ✅ API REST estándar FHIR (interoperable)
+- ✅ API REST estándar FHIR R4 (interoperable)
+- ✅ Integración openEHR con EHRbase 2.6.0 (escritura dual)
 - ✅ Autenticación JWT con tokens de 24 horas
 - ✅ Hash de contraseñas con BCrypt
-- ✅ Roles y permisos (USER, ADMIN, DOCTOR, NURSE)
+- ✅ Roles y permisos (USER, ADMIN)
 - ✅ CORS configurado para desarrollo
-- ✅ Arquitectura de 3 capas (Controller → Service → Repository)
-- ✅ Tests unitarios con mocks
+- ✅ Carga automática de templates openEHR (.opt) al iniciar
 
 ### Frontend
 - ✅ Material Design 3 (UI moderna)
-- ✅ Configuración dinámica de red (localhost para web, IP para móvil)
-- ✅ Actualización instantánea de listas al crear/editar
+- ✅ Expediente clínico completo del paciente (FHIR + EHRbase)
+- ✅ Registro de encuentros clínicos con signos vitales (escritura dual)
+- ✅ Captura de antecedentes clínicos (heredofamiliar, no patológico, gineco-obstétrico)
 - ✅ Gestión de estado con Provider
 - ✅ Almacenamiento persistente del token (SharedPreferences)
-- ✅ Animaciones suaves (FadeIn, SlideTransition)
+- ✅ Animaciones suaves y diseño responsivo
 - ✅ Manejo de errores con SnackBars
-- ✅ Búsqueda y filtrado de pacientes/médicos
 
 ## 🔧 Configuración Avanzada
 
@@ -263,11 +240,6 @@ jwt:
   expiration: 86400000  # 24 horas en ms
 ```
 
-## 📚 Documentación Adicional
-
-- **[backend/README.md](backend/README.md)** - Documentación completa del backend
-- **[frontend/README.md](frontend/README.md)** - Documentación completa del frontend
-- **[COMO_USAR_SCRIPTS.md](COMO_USAR_SCRIPTS.md)** - Guía de scripts de inicialización
 
 ## 🐛 Troubleshooting
 
@@ -377,6 +349,6 @@ Repositorio: [His-TECNM-MX](https://github.com/UlisesBGZ/His-TECNM-MX)
 
 ---
 
-**Fecha de última actualización**: 11 de Marzo, 2026  
-**Versión**: 1.0.0  
-**Estado**: ✅ Completamente funcional
+**Fecha de última actualización**: Mayo 2026  
+**Versión**: 1.1.0 (EHRbase dual-write)  
+**Estado**: ✅ MVP funcional

@@ -2,10 +2,14 @@ package ca.uhn.fhir.jpa.starter.virtualehr.controller;
 
 import ca.uhn.fhir.jpa.starter.virtualehr.dto.CompositionResponseDto;
 import ca.uhn.fhir.jpa.starter.virtualehr.dto.CreatePatientRequestDto;
+import ca.uhn.fhir.jpa.starter.virtualehr.dto.FullPatientRecordResponseDto;
 import ca.uhn.fhir.jpa.starter.virtualehr.dto.PatientLinkageResponseDto;
+import ca.uhn.fhir.jpa.starter.virtualehr.dto.SaveAntecedentesCompositionRequestDto;
 import ca.uhn.fhir.jpa.starter.virtualehr.dto.SaveEncounterCompositionRequestDto;
 import ca.uhn.fhir.jpa.starter.virtualehr.dto.UnifiedPatientRecordResponseDto;
+import ca.uhn.fhir.jpa.starter.virtualehr.service.EhrbaseAntecedentesService;
 import ca.uhn.fhir.jpa.starter.virtualehr.service.EhrbaseCompositionService;
+import ca.uhn.fhir.jpa.starter.virtualehr.service.FullPatientRecordService;
 import ca.uhn.fhir.jpa.starter.virtualehr.service.PatientOrchestratorService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -24,12 +28,18 @@ public class VirtualEhrPatientController {
 
     private final PatientOrchestratorService patientOrchestratorService;
     private final EhrbaseCompositionService ehrbaseCompositionService;
+    private final EhrbaseAntecedentesService ehrbaseAntecedentesService;
+    private final FullPatientRecordService fullPatientRecordService;
 
     public VirtualEhrPatientController(
             PatientOrchestratorService patientOrchestratorService,
-            EhrbaseCompositionService ehrbaseCompositionService) {
+            EhrbaseCompositionService ehrbaseCompositionService,
+            EhrbaseAntecedentesService ehrbaseAntecedentesService,
+            FullPatientRecordService fullPatientRecordService) {
         this.patientOrchestratorService = patientOrchestratorService;
         this.ehrbaseCompositionService = ehrbaseCompositionService;
+        this.ehrbaseAntecedentesService = ehrbaseAntecedentesService;
+        this.fullPatientRecordService = fullPatientRecordService;
     }
 
     @PostMapping
@@ -45,7 +55,7 @@ public class VirtualEhrPatientController {
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping("/{fhirPatientId}/encounters/composition")
+    @PostMapping("/{fhirPatientId}/ehr-composition")
     public ResponseEntity<CompositionResponseDto> saveEncounterComposition(
             @PathVariable("fhirPatientId") String fhirPatientId,
             @RequestBody SaveEncounterCompositionRequestDto request) {
@@ -56,5 +66,25 @@ public class VirtualEhrPatientController {
                 request.getEhrId(),
                 "consulta_clinica");
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @PostMapping("/{fhirPatientId}/antecedentes-composition")
+    public ResponseEntity<CompositionResponseDto> saveAntecedentesComposition(
+            @PathVariable("fhirPatientId") String fhirPatientId,
+            @RequestBody SaveAntecedentesCompositionRequestDto request) {
+        String compositionId = ehrbaseAntecedentesService.saveAntecedente(request);
+        CompositionResponseDto response = new CompositionResponseDto(
+                compositionId,
+                null,
+                request.getEhrId(),
+                "antecedentes_clinicos");
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @GetMapping("/{fhirPatientId}/full-record")
+    public ResponseEntity<FullPatientRecordResponseDto> getFullRecord(
+            @PathVariable("fhirPatientId") String fhirPatientId) {
+        FullPatientRecordResponseDto response = fullPatientRecordService.getFullRecord(fhirPatientId);
+        return ResponseEntity.ok(response);
     }
 }

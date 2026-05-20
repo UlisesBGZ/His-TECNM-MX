@@ -1,0 +1,8 @@
+$kind: http-request
+description: "Credenciales: ehrbase:ehrbase (Basic Auth ya incluido)"
+url: "{{base_ehr}}/ehr/{{ehr_id}}"
+method: GET
+headers:
+  Authorization: Basic ZWhyYmFzZTplaHJiYXNl
+  Accept: application/json
+order: 1000
