@@ -400,8 +400,7 @@ hapi:
     # comma-separated package names, will be @ComponentScan'ed by Spring to allow for creating custom Spring beans
 
     # custom-bean-packages:
-    custom-interceptor-classes:
-      - ca.uhn.fhir.jpa.starter.validation.MedicationRequestNormativeValidationInterceptor
+    # custom-interceptor-classes:
     # custom-provider-classes:
     
     # store_meta_source_information: NONE
