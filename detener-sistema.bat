@@ -47,7 +47,7 @@ echo.
 echo [3/3] Deteniendo servicios Docker (PostgreSQL y EHRbase)...
 cd /d "%~dp0backend"
 
-docker ps | findstr "hapi-fhir\|ehrbase" > nul 2>&1
+docker compose ps -q 2>nul | findstr . > nul 2>&1
 if not errorlevel 1 (
     docker compose down
     if errorlevel 1 (
